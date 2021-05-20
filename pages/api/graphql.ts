@@ -19,6 +19,15 @@ async function dbConnect() {
 const apolloServer = new ApolloServer({
   schema,
   context: dbConnect(),
+  formatResponse: (response, requestContext) => {
+    if (requestContext.response && requestContext.response.http) {
+      requestContext.response.http.headers.set(
+        "Access-Control-Allow-Origin",
+        "*"
+      );
+    }
+    return response;
+  },
 });
 
 export const config = {
