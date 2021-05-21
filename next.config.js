@@ -1,14 +1,15 @@
 module.exports = {
-  poweredByHeader: false,
-  routes: [
-    {
-      src: "/.*",
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "X-Content-Type-Options": "nosniff",
-        "X-XSS-Protection": "1",
+  async headers() {
+    return [
+      {
+        source: "/api/graphql",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+        ],
       },
-      continue: true,
-    },
-  ],
+    ];
+  },
 };
