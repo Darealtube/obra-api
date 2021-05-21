@@ -8,7 +8,7 @@ module.exports = {
           { key: "Access-Control-Allow-Credentials", value: "true" },
           {
             key: "Access-Control-Allow-Origin",
-            value: "*",
+            value: "https://obra-website.vercel.app",
           },
           {
             key: "Access-Control-Allow-Methods",
