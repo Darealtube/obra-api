@@ -2,8 +2,7 @@ module.exports = {
   async headers() {
     return [
       {
-        // matching all API routes
-        source: "/api/:path*",
+        source: "/api/graphql",
         headers: [
           { key: "Access-Control-Allow-Credentials", value: "true" },
           {
@@ -17,7 +16,7 @@ module.exports = {
           {
             key: "Access-Control-Allow-Headers",
             value:
-              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Access-Control-Allow-Origin",
+              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Access-Control-Allow-Origin",
           },
         ],
       },
