@@ -33,7 +33,7 @@ const allowCors = (fn) => async (req, res) => {
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader(
     "Access-Control-Allow-Origin",
-    "https://obra-website.vercel.app"
+    "https://obra-website.vercel.app http://localhost:3000"
   );
   // another common pattern
   // res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
