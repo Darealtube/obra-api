@@ -32,7 +32,6 @@ export const typeDefs = gql`
     yourFinishedCommissions(after: ID, limit: Int): CommissionConnection
     yourPendingCommissions(after: ID, limit: Int): CommissionConnection
     commissionCount: Int
-    likedBy: [String]
   }
 
   type Post {
@@ -47,6 +46,8 @@ export const typeDefs = gql`
     author: User
     likes: Int
     comments(after: ID, limit: Int): CommentConnection
+    width: Int
+    height: Int
   }
 
   type Commission {
@@ -68,7 +69,7 @@ export const typeDefs = gql`
     id: ID!
     postID: ID!
     date: String!
-    author: User!
+    author: User
     content: String!
   }
 
@@ -86,7 +87,6 @@ export const typeDefs = gql`
     isLikedPost(postID: ID!, userID: ID!): Boolean
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
-    allUsersList: [String!]
   }
 
   type Notification {
@@ -116,6 +116,8 @@ export const typeDefs = gql`
       price: String!
       sale: String!
       author: ID!
+      width: Int!
+      height: Int!
     ): Boolean!
     deletePost(postId: ID!): Boolean!
     configUser(

@@ -28,6 +28,8 @@ const PostSchema = new mongoose.Schema({
   comments: Array,
   forSale: Boolean,
   forSalePrice: String,
+  width: Number,
+  height: Number,
 });
 
 export default mongoose.models.Post || mongoose.model("Post", PostSchema);
