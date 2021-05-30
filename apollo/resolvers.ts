@@ -96,6 +96,11 @@ export const resolvers = {
 
       return userOriginal._id.toString() == userCompared._id.toString();
     },
+    async allUsersList(_parent, _args, _context, _info) {
+      const users = await User.find({}).lean();
+      const userList = users.map((user) => user.name);
+      return userList;
+    },
   },
   Comment: {
     async author(parent, _args, _context, _info) {
@@ -441,12 +446,34 @@ export const resolvers = {
           runValidators: true,
         }
       );
+      await User.findByIdAndUpdate(
+        args.artistID,
+        {
+          $push: {
+            likedBy: new ObjectId(args.userID as string) as never,
+          },
+        },
+        {
+          new: true,
+        }
+      );
       return true;
     },
     async unlikeArtist(_parent, args, _context, _info) {
       await User.findByIdAndUpdate(
         args.userID,
         { $pull: { likedArtists: new ObjectId(args.artistID as string) } },
+        {
+          new: true,
+        }
+      );
+      await User.findByIdAndUpdate(
+        args.artistID,
+        {
+          $pull: {
+            likedBy: new ObjectId(args.userID as string) as never,
+          },
+        },
         {
           new: true,
         }
