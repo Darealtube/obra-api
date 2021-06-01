@@ -87,6 +87,7 @@ export const typeDefs = gql`
     isLikedPost(postID: ID!, userID: ID!): Boolean
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
+    allUsersList: [String]
   }
 
   type Notification {

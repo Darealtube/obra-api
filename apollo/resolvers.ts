@@ -96,6 +96,11 @@ export const resolvers = {
 
       return userOriginal._id.toString() == userCompared._id.toString();
     },
+    async allUsersList(_parent, _args, _context, _info) {
+      const users = await User.find({}).lean();
+      const userList = users.map((user) => user.name);
+      return userList;
+    },
   },
   Comment: {
     async author(parent, _args, _context, _info) {
