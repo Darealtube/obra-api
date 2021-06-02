@@ -88,7 +88,7 @@ export const typeDefs = gql`
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
-    galleryExists(userName: String):Boolean
+    galleryExists(userName: String): Boolean
   }
 
   type Notification {
@@ -104,7 +104,7 @@ export const typeDefs = gql`
     likePost(postId: ID!, userID: ID!): Boolean!
     unlikePost(postId: ID!, userID: ID!): Boolean!
     editPost(
-      postId: ID!
+      postId: ID
       title: String!
       description: String!
       tags: [String!]
