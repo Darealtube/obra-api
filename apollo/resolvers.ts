@@ -8,6 +8,7 @@ import _ from "lodash";
 import relayPaginate from "../relayPaginate";
 import Commission from "../model/Commission";
 import Notification from "../model/Notification";
+import { findDangerousChanges } from "graphql";
 
 export const resolvers = {
   Query: {
@@ -100,6 +101,10 @@ export const resolvers = {
       const users = await User.find({}).lean();
       const userList = users.map((user) => user.name);
       return userList;
+    },
+    async galleryExists(_parent, args, _context, _info) {
+      const user = await User.findOne({ name: args.userName }).lean();
+      return user ? true : false;
     },
   },
   Comment: {
