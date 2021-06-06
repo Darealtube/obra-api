@@ -332,7 +332,7 @@ export const resolvers = {
           new: true,
         }
       );
-      return true;
+      return post;
     },
     async deletePost(_parent, args, _context, _info) {
       const post = await Post.findById(args.postId);

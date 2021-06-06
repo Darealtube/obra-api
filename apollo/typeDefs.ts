@@ -108,7 +108,7 @@ export const typeDefs = gql`
       title: String!
       description: String!
       tags: [String!]
-    ): Boolean!
+    ): Post!
     createPost(
       date: String!
       tags: [String]
