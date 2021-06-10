@@ -31,7 +31,7 @@ const handler = apolloServer.createHandler({ path: "/api/graphql" });
 
 // This allows CORS between https://obra-website.vercel.app and here.
 // The Access-Control-Allow-Origin header should be changed to http://localhost:3000
-// on development mode.
+// on development mode, never forget.
 const allowCors = (fn) => async (req, res) => {
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader(
