@@ -16,11 +16,13 @@
     "mongodb": "^3.6.7",
     "mongoose": "^5.12.10",
     "next": "10.2.0",
+    "nodemailer": "^6.6.1",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
   "devDependencies": {
     "@types/node": "^15.3.0",
+    "@types/nodemailer": "^6.4.2",
     "@types/react": "^17.0.6",
     "typescript": "^4.2.4"
   }

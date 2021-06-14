@@ -73,6 +73,15 @@ export const typeDefs = gql`
     content: String!
   }
 
+  type PostReport {
+    senderId: ID!
+    reportedPostId: ID!
+    date: String!
+    title: String!
+    description: String!
+    reason: String!
+  }
+
   type Query {
     users: [User]!
     posts(after: ID, limit: Int): PostConnection
@@ -88,7 +97,9 @@ export const typeDefs = gql`
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
+    allPostList: [String]
     galleryExists(userName: String): Boolean
+    postReports: PostReportConnection
   }
 
   type Notification {
@@ -167,6 +178,8 @@ export const typeDefs = gql`
     deleteNotification(notifId: ID!, userId: ID!): Boolean!
     deleteCommission(commissionId: ID!, reason: String): Boolean!
     acceptCommission(commissionId: ID!, message: String): Commission!
+    sendPostReport(senderId: ID!, reportedPostId: ID!, date: String!, title: String!, description: String!, reason: String!): Boolean!
+    sendPostWarning(userId: ID!, postId: ID!, reportedEmail: String!, title: String!, description: String!, reason: String!): Boolean!
   }
 
   type PostConnection {
@@ -199,6 +212,16 @@ export const typeDefs = gql`
     totalUnreadCount: Int
     pageInfo: PageInfo
     edges: [NotificationEdge]
+  }
+
+  type PostReportConnection {
+    totalCount: Int
+    pageInfo: PageInfo
+    edges: [PostReportEdge]
+  }
+
+  type PostReportEdge {
+    node: PostReport
   }
 
   type NotificationEdge {

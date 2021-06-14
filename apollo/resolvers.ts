@@ -8,7 +8,8 @@ import _ from "lodash";
 import relayPaginate from "../relayPaginate";
 import Commission from "../model/Commission";
 import Notification from "../model/Notification";
-import { findDangerousChanges } from "graphql";
+import nodemailer from "nodemailer"
+import Report from "../model/Report";
 
 export const resolvers = {
   Query: {
@@ -101,6 +102,11 @@ export const resolvers = {
       const users = await User.find({}).lean();
       const userList = users.map((user) => user.name);
       return userList;
+    },
+    async allPostList(_parent,_args,_context,_info){
+      const posts = await Post.find({}).lean();
+      const postList = posts.map((post)=> post._id);
+      return postList;
     },
     async galleryExists(_parent, args, _context, _info) {
       const user = await User.findOne({ name: args.userName }).lean();
@@ -596,6 +602,36 @@ export const resolvers = {
       );
 
       return commission;
+    },
+    async sendPostReport(_parent,args,_context,_info){
+      await Report.create(args);
+      return true;
+    },
+    async sendPostWarning(_parent,args,_context,_info){
+      const user = await User.findById(args.userId);
+      const post = await Post.findById(args.postId);
+
+      // create reusable transporter object using the default SMTP transport
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // use SSL
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_PASSWORD,
+        },
+      });
+
+     // send mail with defined transport object
+      await transporter.sendMail({
+        replyTo: `${process.env.GMAIL_USER}`,
+        from: "Obra Website", // sender address
+        to: `${args.reportedEmail}`, // list of receivers
+        subject: args.title, // Subject line
+        text: `${args.description} <b>Reason: ${args.reason}</b>`, // plain text body
+      });
+
+      return true;
     },
   },
 };
