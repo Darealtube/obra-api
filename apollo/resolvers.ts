@@ -103,11 +103,6 @@ export const resolvers = {
       const userList = users.map((user) => user.name);
       return userList;
     },
-    async allPostList(_parent,_args,_context,_info){
-      const posts = await Post.find({}).lean();
-      const postList = posts.map((post)=> post._id);
-      return postList;
-    },
     async galleryExists(_parent, args, _context, _info) {
       const user = await User.findOne({ name: args.userName }).lean();
       return user ? true : false;

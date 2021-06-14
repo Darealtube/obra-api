@@ -97,7 +97,6 @@ export const typeDefs = gql`
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
-    allPostList: [String]
     galleryExists(userName: String): Boolean
     postReports: PostReportConnection
   }
