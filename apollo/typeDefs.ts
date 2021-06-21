@@ -32,6 +32,7 @@ export const typeDefs = gql`
     yourFinishedCommissions(after: ID, limit: Int): CommissionConnection
     yourPendingCommissions(after: ID, limit: Int): CommissionConnection
     commissionCount: Int
+    admin: Boolean
   }
 
   type Post {
@@ -93,7 +94,7 @@ export const typeDefs = gql`
     userName(name: String!): User
     postId(id: ID!): Post
     commissionId(id: ID!): Commission
-    commentId(id:ID!): Comment
+    commentId(id: ID!): Comment
     recommendedPosts(id: ID!, after: ID, limit: Int): PostConnection
     newPosts(after: ID, limit: Int): PostConnection
     featuredPosts(after: ID, limit: Int): PostConnection
@@ -105,7 +106,15 @@ export const typeDefs = gql`
     galleryExists(userName: String): Boolean
     reports(after: ID, limit: Int, type: String!): ReportConnection
     isAdmin(id: ID!): Boolean
-    reportId(reportedId:ID!): Report
+    reportId(reportedId: ID!): Report
+    reportCount: ReportCount
+  }
+
+  type ReportCount {
+    totalCount: Int
+    postReport: Int
+    commentReport: Int
+    userReport: Int
   }
 
   type Notification {
@@ -184,8 +193,22 @@ export const typeDefs = gql`
     deleteNotification(notifId: ID!, userId: ID!): Boolean!
     deleteCommission(commissionId: ID!, reason: String): Boolean!
     acceptCommission(commissionId: ID!, message: String): Commission!
-    sendReport(senderId: ID!, reportedId: ID!, type: String!, date: String!, title: String!, description: String!, reason: String!): Boolean!
-    sendWarning(reportId: ID!, reportedEmail: String!, title: String!, description: String!, reason: String!): Boolean!
+    sendReport(
+      senderId: ID!
+      reportedId: ID!
+      type: String!
+      date: String!
+      title: String!
+      description: String!
+      reason: String!
+    ): Boolean!
+    sendWarning(
+      reportId: ID!
+      reportedEmail: String!
+      title: String!
+      description: String!
+      reason: String!
+    ): Boolean!
     deleteReport(reportId: ID!): Boolean!
   }
 

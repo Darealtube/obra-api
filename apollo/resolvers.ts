@@ -8,7 +8,7 @@ import _ from "lodash";
 import relayPaginate from "../relayPaginate";
 import Commission from "../model/Commission";
 import Notification from "../model/Notification";
-import nodemailer from "nodemailer"
+import nodemailer from "nodemailer";
 import Report from "../model/Report";
 
 export const resolvers = {
@@ -109,33 +109,48 @@ export const resolvers = {
       const user = await User.findOne({ name: args.userName }).lean();
       return user ? true : false;
     },
-    async reports(_parent,args,_context,_info){
-      const reports = await Report.find({type: args.type});
+    async reports(_parent, args, _context, _info) {
+      const reports = await Report.find({ type: args.type });
       const data = relayPaginate(reports, args.after, args.limit);
       return data;
     },
-    async isAdmin(_parent,args,_context,_info){
+    async isAdmin(_parent, args, _context, _info) {
       const user = await User.findById(args.id).lean();
       return user.admin;
     },
-    async reportId(_parent, args, _context,_info){
+    async reportId(_parent, args, _context, _info) {
       return await Report.findById(args.reportedId);
-    }
+    },
+    async reportCount(_parent, _args, _context, _info) {
+      const postReports = await Report.countDocuments({ type: "Post" }).lean();
+      const commentReports = await Report.countDocuments({
+        type: "Comment",
+      }).lean();
+      const userReports = await Report.countDocuments({
+        type: "Report",
+      }).lean();
+      return {
+        postReport: postReports,
+        commentReport: commentReports,
+        userReport: userReports,
+        totalCount: postReports + commentReports + userReports,
+      };
+    },
   },
   ReportedId: {
-    async __resolveType(obj){
-      const user =  await User.findById(obj);
+    async __resolveType(obj) {
+      const user = await User.findById(obj);
       const post = await Post.findById(obj);
       const comment = await Comment.findById(obj);
 
-      if(comment){
+      if (comment) {
         return "Comment";
       }
-      if(post){
-        return "Post"
+      if (post) {
+        return "Post";
       }
-      if(user){
-        return "User"
+      if (user) {
+        return "User";
       }
       return null; // GraphQLError is thrown
     },
@@ -158,18 +173,18 @@ export const resolvers = {
       return User.findById(parent.toArtist);
     },
   },
-  Report:{
-    async senderId(parent, _args, _context, _info){
+  Report: {
+    async senderId(parent, _args, _context, _info) {
       return User.findById(parent.senderId);
     },
-    async reportedId(parent,_args,_context,_info){
-      if(parent.type == "Post"){
+    async reportedId(parent, _args, _context, _info) {
+      if (parent.type == "Post") {
         return await Post.findById(parent.reportedId);
       }
-      if(parent.type == "Comment"){
+      if (parent.type == "Comment") {
         return await Comment.findById(parent.reportedId);
       }
-      if(parent.type == "User"){
+      if (parent.type == "User") {
         return await User.findById(parent.reportedId);
       }
     },
@@ -646,20 +661,20 @@ export const resolvers = {
 
       return commission;
     },
-    async sendReport(_parent,args,_context,_info){
+    async sendReport(_parent, args, _context, _info) {
       await Report.create(args);
       return true;
     },
-    async deleteReport(_parent, args, _context,_info){
+    async deleteReport(_parent, args, _context, _info) {
       await Report.findByIdAndDelete(args.reportId);
       return true;
     },
-    async sendWarning(_parent,args,_context,_info){
+    async sendWarning(_parent, args, _context, _info) {
       await Report.findByIdAndDelete(args.reportId);
 
       // create reusable transporter object using the default SMTP transport
       const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
+        host: "smtp.gmail.com",
         port: 465,
         secure: true, // use SSL
         auth: {
@@ -668,7 +683,7 @@ export const resolvers = {
         },
       });
 
-     // send mail with defined transport object
+      // send mail with defined transport object
       await transporter.sendMail({
         replyTo: `${process.env.GMAIL_USER}`,
         from: "Obra Website", // sender address
