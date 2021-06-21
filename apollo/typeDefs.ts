@@ -73,14 +73,18 @@ export const typeDefs = gql`
     content: String!
   }
 
-  type PostReport {
-    senderId: ID!
-    reportedPostId: ID!
+  type Report {
+    id: ID!
+    senderId: User!
+    reportedId: ReportedId
+    type: String!
     date: String!
     title: String!
     description: String!
     reason: String!
   }
+
+  union ReportedId = Post | User | Comment
 
   type Query {
     users: [User]!
@@ -89,6 +93,7 @@ export const typeDefs = gql`
     userName(name: String!): User
     postId(id: ID!): Post
     commissionId(id: ID!): Commission
+    commentId(id:ID!): Comment
     recommendedPosts(id: ID!, after: ID, limit: Int): PostConnection
     newPosts(after: ID, limit: Int): PostConnection
     featuredPosts(after: ID, limit: Int): PostConnection
@@ -98,7 +103,9 @@ export const typeDefs = gql`
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
     galleryExists(userName: String): Boolean
-    postReports: PostReportConnection
+    reports(after: ID, limit: Int, type: String!): ReportConnection
+    isAdmin(id: ID!): Boolean
+    reportId(reportedId:ID!): Report
   }
 
   type Notification {
@@ -177,8 +184,9 @@ export const typeDefs = gql`
     deleteNotification(notifId: ID!, userId: ID!): Boolean!
     deleteCommission(commissionId: ID!, reason: String): Boolean!
     acceptCommission(commissionId: ID!, message: String): Commission!
-    sendPostReport(senderId: ID!, reportedPostId: ID!, date: String!, title: String!, description: String!, reason: String!): Boolean!
-    sendPostWarning(userId: ID!, postId: ID!, reportedEmail: String!, title: String!, description: String!, reason: String!): Boolean!
+    sendReport(senderId: ID!, reportedId: ID!, type: String!, date: String!, title: String!, description: String!, reason: String!): Boolean!
+    sendWarning(reportId: ID!, reportedEmail: String!, title: String!, description: String!, reason: String!): Boolean!
+    deleteReport(reportId: ID!): Boolean!
   }
 
   type PostConnection {
@@ -213,14 +221,14 @@ export const typeDefs = gql`
     edges: [NotificationEdge]
   }
 
-  type PostReportConnection {
+  type ReportConnection {
     totalCount: Int
     pageInfo: PageInfo
-    edges: [PostReportEdge]
+    edges: [ReportEdge]
   }
 
-  type PostReportEdge {
-    node: PostReport
+  type ReportEdge {
+    node: Report
   }
 
   type NotificationEdge {

@@ -36,6 +36,9 @@ export const resolvers = {
     commissionId(_parent, args, _context, _info) {
       return Commission.findById(args.id);
     },
+    commentId(_parent, args, _context, _info) {
+      return Comment.findById(args.id);
+    },
     async recommendedPosts(_parent, args, _context, _info) {
       const post = await Post.findById(args.id);
       const recommended1 = await Post.find({
@@ -95,7 +98,6 @@ export const resolvers = {
       if (!userCompared || !userOriginal) {
         return true;
       }
-
       return userOriginal._id.toString() == userCompared._id.toString();
     },
     async allUsersList(_parent, _args, _context, _info) {
@@ -106,6 +108,36 @@ export const resolvers = {
     async galleryExists(_parent, args, _context, _info) {
       const user = await User.findOne({ name: args.userName }).lean();
       return user ? true : false;
+    },
+    async reports(_parent,args,_context,_info){
+      const reports = await Report.find({type: args.type});
+      const data = relayPaginate(reports, args.after, args.limit);
+      return data;
+    },
+    async isAdmin(_parent,args,_context,_info){
+      const user = await User.findById(args.id).lean();
+      return user.admin;
+    },
+    async reportId(_parent, args, _context,_info){
+      return await Report.findById(args.reportedId);
+    }
+  },
+  ReportedId: {
+    async __resolveType(obj){
+      const user =  await User.findById(obj);
+      const post = await Post.findById(obj);
+      const comment = await Comment.findById(obj);
+
+      if(comment){
+        return "Comment";
+      }
+      if(post){
+        return "Post"
+      }
+      if(user){
+        return "User"
+      }
+      return null; // GraphQLError is thrown
     },
   },
   Comment: {
@@ -124,6 +156,22 @@ export const resolvers = {
     },
     async toArtist(parent, _args, _context, _info) {
       return User.findById(parent.toArtist);
+    },
+  },
+  Report:{
+    async senderId(parent, _args, _context, _info){
+      return User.findById(parent.senderId);
+    },
+    async reportedId(parent,_args,_context,_info){
+      if(parent.type == "Post"){
+        return await Post.findById(parent.reportedId);
+      }
+      if(parent.type == "Comment"){
+        return await Comment.findById(parent.reportedId);
+      }
+      if(parent.type == "User"){
+        return await User.findById(parent.reportedId);
+      }
     },
   },
   User: {
@@ -598,13 +646,16 @@ export const resolvers = {
 
       return commission;
     },
-    async sendPostReport(_parent,args,_context,_info){
+    async sendReport(_parent,args,_context,_info){
       await Report.create(args);
       return true;
     },
-    async sendPostWarning(_parent,args,_context,_info){
-      const user = await User.findById(args.userId);
-      const post = await Post.findById(args.postId);
+    async deleteReport(_parent, args, _context,_info){
+      await Report.findByIdAndDelete(args.reportId);
+      return true;
+    },
+    async sendWarning(_parent,args,_context,_info){
+      await Report.findByIdAndDelete(args.reportId);
 
       // create reusable transporter object using the default SMTP transport
       const transporter = nodemailer.createTransport({
