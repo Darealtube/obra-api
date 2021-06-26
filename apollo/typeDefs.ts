@@ -80,9 +80,11 @@ export const typeDefs = gql`
     reportedId: ReportedId
     type: String!
     date: String!
-    title: String!
+    title: String
     description: String!
     reason: String!
+    bugVid: String
+    vidFormat: String
   }
 
   union ReportedId = Post | User | Comment
@@ -98,14 +100,14 @@ export const typeDefs = gql`
     recommendedPosts(id: ID!, after: ID, limit: Int): PostConnection
     newPosts(after: ID, limit: Int): PostConnection
     featuredPosts(after: ID, limit: Int): PostConnection
-    isLikedArtist(userID: ID!, artistName: String!): Boolean
-    isLikedPost(postID: ID!, userID: ID!): Boolean
+    isLikedArtist(userID: ID, artistName: String!): Boolean
+    isLikedPost(postID: ID!, userID: ID): Boolean
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
     galleryExists(userName: String): Boolean
     reports(after: ID, limit: Int, type: String!): ReportConnection
-    isAdmin(id: ID!): Boolean
+    isAdmin(id: ID): Boolean
     reportId(reportedId: ID!): Report
     reportCount: ReportCount
   }
@@ -115,6 +117,7 @@ export const typeDefs = gql`
     postReport: Int
     commentReport: Int
     userReport: Int
+    bugReport: Int
   }
 
   type Notification {
@@ -195,12 +198,14 @@ export const typeDefs = gql`
     acceptCommission(commissionId: ID!, message: String): Commission!
     sendReport(
       senderId: ID!
-      reportedId: ID!
+      reportedId: ID
       type: String!
       date: String!
-      title: String!
+      title: String
       description: String!
       reason: String!
+      bugVid: String
+      vidFormat: String
     ): Boolean!
     sendWarning(
       reportId: ID!

@@ -78,12 +78,12 @@ export const resolvers = {
       const user = await User.findById(args.userID);
       const artist = await User.findOne({ name: args.artistName });
 
-      return artist ? user.likedArtists.includes(artist._id) : false;
+      return artist && user ? user.likedArtists.includes(artist._id) : false;
     },
     async isLikedPost(_parent, args, _context, _info) {
       const user = await User.findById(args.userID);
 
-      return user.likedPosts.includes(args.postID);
+      return user ? user.likedPosts.includes(args.postID) : false;
     },
     async userExists(_parent, args, _context, _info) {
       const origUser = await User.findById(args.userId).lean();
@@ -116,7 +116,7 @@ export const resolvers = {
     },
     async isAdmin(_parent, args, _context, _info) {
       const user = await User.findById(args.id).lean();
-      return user.admin;
+      return user ? user.admin : false;
     },
     async reportId(_parent, args, _context, _info) {
       return await Report.findById(args.reportedId);
@@ -129,11 +129,15 @@ export const resolvers = {
       const userReports = await Report.countDocuments({
         type: "Report",
       }).lean();
+      const bugReports = await Report.countDocuments({
+        type: "Bug",
+      }).lean();
       return {
         postReport: postReports,
         commentReport: commentReports,
         userReport: userReports,
-        totalCount: postReports + commentReports + userReports,
+        bugReport: bugReports,
+        totalCount: postReports + commentReports + userReports + bugReports,
       };
     },
   },

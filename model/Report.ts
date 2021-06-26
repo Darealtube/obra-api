@@ -8,6 +8,8 @@ const ReportSchema = new mongoose.Schema({
   title: String,
   description: String,
   reason: String,
+  bugVid: String,
+  vidFormat: String,
 });
 
 export default mongoose.models.Report ||
