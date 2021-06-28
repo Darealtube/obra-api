@@ -137,7 +137,7 @@ export const typeDefs = gql`
       title: String!
       description: String!
       tags: [String!]
-    ): Post!
+    ): Post
     createPost(
       date: String!
       tags: [String]
@@ -176,7 +176,7 @@ export const typeDefs = gql`
       backdrop: String
       phone: String
       age: String
-    ): User!
+    ): User
     readNotif(notifArray: [ID!]): Boolean!
     createComment(postID: ID!, author: ID!, content: String!): Comment!
     deleteComment(commentID: ID!): Boolean!

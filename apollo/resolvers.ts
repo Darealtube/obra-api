@@ -10,6 +10,7 @@ import Commission from "../model/Commission";
 import Notification from "../model/Notification";
 import nodemailer from "nodemailer";
 import Report from "../model/Report";
+import mongoose from "mongoose";
 
 export const resolvers = {
   Query: {
@@ -31,7 +32,16 @@ export const resolvers = {
       return User.findOne({ name: args.name });
     },
     postId(_parent, args, _context, _info) {
-      return Post.findById(args.id);
+      let id: string | mongoose.Types.ObjectId;
+      try {
+        id = new mongoose.Types.ObjectId(args.id);
+      } catch (error) {
+        return null;
+      }
+      if (id == args.id) {
+        return Post.findById(args.id);
+      }
+      return null;
     },
     commissionId(_parent, args, _context, _info) {
       return Commission.findById(args.id);
@@ -41,22 +51,26 @@ export const resolvers = {
     },
     async recommendedPosts(_parent, args, _context, _info) {
       const post = await Post.findById(args.id);
-      const recommended1 = await Post.find({
-        tags: { $in: [...post.tags] },
-        _id: { $ne: new ObjectId(args.id as string) },
-      });
-      const recommended2 = await Post.find({
-        author: post.author,
-        _id: { $ne: new ObjectId(args.id as string) },
-      });
-      const merge = Object.values(
-        recommended2.concat(recommended1).reduce((r, o) => {
-          r[o.id] = o;
-          return r;
-        }, {})
-      );
-      const data = relayPaginate(merge, args.after, args.limit);
-      return data;
+      if (post) {
+        const recommended1 = await Post.find({
+          tags: { $in: [...post.tags] },
+          _id: { $ne: new ObjectId(args.id as string) },
+        });
+        const recommended2 = await Post.find({
+          author: post.author,
+          _id: { $ne: new ObjectId(args.id as string) },
+        });
+        const merge = Object.values(
+          recommended2.concat(recommended1).reduce((r, o) => {
+            r[o.id] = o;
+            return r;
+          }, {})
+        );
+        const data = relayPaginate(merge, args.after, args.limit);
+        return data;
+      } else {
+        return null;
+      }
     },
     async newPosts(_parent, args, _context, _info) {
       const posts = await Post.find({});
@@ -119,7 +133,16 @@ export const resolvers = {
       return user ? user.admin : false;
     },
     async reportId(_parent, args, _context, _info) {
-      return await Report.findById(args.reportedId);
+      let id: string | mongoose.Types.ObjectId;
+      try {
+        id = new mongoose.Types.ObjectId(args.reportedId);
+      } catch (error) {
+        return null;
+      }
+      if (id == args.reportedId) {
+        return await Report.findById(args.reportedId);
+      }
+      return null;
     },
     async reportCount(_parent, _args, _context, _info) {
       const postReports = await Report.countDocuments({ type: "Post" }).lean();
@@ -340,56 +363,65 @@ export const resolvers = {
   },
   Mutation: {
     async likePost(_parent, args, _context, _info) {
-      await User.findOneAndUpdate(
-        { _id: args.userID },
-        {
-          $addToSet: {
-            likedPosts: new ObjectId(args.postId as string) as never,
-          },
-        },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
+      const post = await Post.findById(args.postId).lean();
 
-      await Post.updateOne(
-        { _id: args.postId },
-        {
-          $inc: {
-            likes: 1 as never,
+      if (post) {
+        await User.findOneAndUpdate(
+          { _id: args.userID },
+          {
+            $addToSet: {
+              likedPosts: new ObjectId(args.postId as string) as never,
+            },
           },
-        },
-        {
-          new: true,
-        }
-      );
+          {
+            new: true,
+            runValidators: true,
+          }
+        );
+
+        await Post.updateOne(
+          { _id: args.postId },
+          {
+            $inc: {
+              likes: 1 as never,
+            },
+          },
+          {
+            new: true,
+          }
+        );
+      }
 
       return true;
     },
     async unlikePost(_parent, args, _context, _info) {
-      await User.findOneAndUpdate(
-        { _id: args.userID },
-        {
-          $pull: {
-            likedPosts: new ObjectId(args.postId as string),
+      const post = await Post.findById(args.postId).lean();
+
+      if (post) {
+        await User.findOneAndUpdate(
+          { _id: args.userID },
+          {
+            $pull: {
+              likedPosts: new ObjectId(args.postId as string),
+            },
           },
-        },
-        {
-          new: true,
-        }
-      );
-      await Post.updateOne(
-        { _id: args.postId },
-        {
-          $inc: {
-            likes: -1 as never,
+          {
+            new: true,
+          }
+        );
+        await Post.updateOne(
+          { _id: args.postId },
+          {
+            $inc: {
+              likes: -1 as never,
+            },
           },
-        },
-        {
-          new: true,
-        }
-      );
+          {
+            new: true,
+          }
+        );
+      }
+
       return true;
     },
     async editPost(_parent, args, _context, _info) {
@@ -507,28 +539,38 @@ export const resolvers = {
       return true;
     },
     async likeArtist(_parent, args, _context, _info) {
-      await User.findByIdAndUpdate(
-        args.userID,
-        {
-          $push: {
-            likedArtists: new ObjectId(args.artistID as string) as never,
+      const user = await User.findById(args.artstID).lean();
+
+      if (user) {
+        await User.findByIdAndUpdate(
+          args.userID,
+          {
+            $push: {
+              likedArtists: new ObjectId(args.artistID as string) as never,
+            },
           },
-        },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
+          {
+            new: true,
+            runValidators: true,
+          }
+        );
+      }
+
       return true;
     },
     async unlikeArtist(_parent, args, _context, _info) {
-      await User.findByIdAndUpdate(
-        args.userID,
-        { $pull: { likedArtists: new ObjectId(args.artistID as string) } },
-        {
-          new: true,
-        }
-      );
+      const user = await User.findById(args.artstID).lean();
+
+      if (user) {
+        await User.findByIdAndUpdate(
+          args.userID,
+          { $pull: { likedArtists: new ObjectId(args.artistID as string) } },
+          {
+            new: true,
+          }
+        );
+      }
+
       return true;
     },
     async viewPost(_parent, args, _context, _info) {
@@ -551,49 +593,51 @@ export const resolvers = {
       const toArtist = await User.findOne({ name: args.artistName }).lean();
       const deadline = moment().add(args.deadline, "d");
 
-      const commission = await Commission.create({
-        fromUser: args.userId,
-        toArtist: toArtist._id,
-        title: args.title,
-        description: args.description,
-        sampleArt: args.sampleArt,
-        width: args.width,
-        height: args.height,
-        deadline,
-      });
+      if (toArtist) {
+        const commission = await Commission.create({
+          fromUser: args.userId,
+          toArtist: toArtist._id,
+          title: args.title,
+          description: args.description,
+          sampleArt: args.sampleArt,
+          width: args.width,
+          height: args.height,
+          deadline,
+        });
 
-      const fromUser = await User.findByIdAndUpdate(
-        args.userId,
-        {
-          $push: {
-            yourCommissions: new ObjectId(commission._id as string) as never,
+        const fromUser = await User.findByIdAndUpdate(
+          args.userId,
+          {
+            $push: {
+              yourCommissions: new ObjectId(commission._id as string) as never,
+            },
           },
-        },
-        {
-          new: true,
-        }
-      );
+          {
+            new: true,
+          }
+        );
 
-      const notification = await Notification.create({
-        commissionId: commission._id,
-        commissioner: args.userId,
-        date: moment().format("l"),
-        description: `You have a new commission request from ${fromUser.name}`,
-        read: false,
-      });
+        const notification = await Notification.create({
+          commissionId: commission._id,
+          commissioner: args.userId,
+          date: moment().format("l"),
+          description: `You have a new commission request from ${fromUser.name}`,
+          read: false,
+        });
 
-      await User.findByIdAndUpdate(
-        toArtist._id,
-        {
-          $push: {
-            commissions: new ObjectId(commission._id as string) as never,
-            notifications: notification._id,
+        await User.findByIdAndUpdate(
+          toArtist._id,
+          {
+            $push: {
+              commissions: new ObjectId(commission._id as string) as never,
+              notifications: notification._id,
+            },
           },
-        },
-        {
-          new: true,
-        }
-      );
+          {
+            new: true,
+          }
+        );
+      }
 
       return true;
     },
@@ -666,7 +710,28 @@ export const resolvers = {
       return commission;
     },
     async sendReport(_parent, args, _context, _info) {
-      await Report.create(args);
+      let reported;
+      switch (args.type) {
+        case "Post":
+          reported = await Post.findById(args.reportedId).lean();
+          break;
+        case "Comment":
+          reported = await Comment.findById(args.reportedId).lean();
+          break;
+        case "User":
+          reported = await User.findById(args.reportedId).lean();
+          break;
+        case "Bug":
+          await Report.create(args);
+          return true;
+        default:
+          return true;
+      }
+
+      if (reported) {
+        await Report.create(args);
+      }
+
       return true;
     },
     async deleteReport(_parent, args, _context, _info) {
