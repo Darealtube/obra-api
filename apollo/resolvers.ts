@@ -366,7 +366,7 @@ export const resolvers = {
       const post = await Post.findById(args.postId).lean();
 
       if (post) {
-        await User.findOneAndUpdate(
+        await User.updateOne(
           { _id: args.userID },
           {
             $addToSet: {
@@ -377,7 +377,7 @@ export const resolvers = {
             new: true,
             runValidators: true,
           }
-        );
+        ).lean();
 
         await Post.updateOne(
           { _id: args.postId },
@@ -389,7 +389,7 @@ export const resolvers = {
           {
             new: true,
           }
-        );
+        ).lean();
       }
 
       return true;
@@ -398,7 +398,7 @@ export const resolvers = {
       const post = await Post.findById(args.postId).lean();
 
       if (post) {
-        await User.findOneAndUpdate(
+        await User.updateOne(
           { _id: args.userID },
           {
             $pull: {
@@ -408,7 +408,7 @@ export const resolvers = {
           {
             new: true,
           }
-        );
+        ).lean();
         await Post.updateOne(
           { _id: args.postId },
           {
@@ -419,7 +419,7 @@ export const resolvers = {
           {
             new: true,
           }
-        );
+        ).lean();
       }
 
       return true;
@@ -539,11 +539,11 @@ export const resolvers = {
       return true;
     },
     async likeArtist(_parent, args, _context, _info) {
-      const user = await User.findById(args.artstID).lean();
+      const user = await User.findById(args.artistID).lean();
 
       if (user) {
-        await User.findByIdAndUpdate(
-          args.userID,
+        await User.updateOne(
+          { _id: args.userID },
           {
             $push: {
               likedArtists: new ObjectId(args.artistID as string) as never,
@@ -553,22 +553,22 @@ export const resolvers = {
             new: true,
             runValidators: true,
           }
-        );
+        ).lean();
       }
 
       return true;
     },
     async unlikeArtist(_parent, args, _context, _info) {
-      const user = await User.findById(args.artstID).lean();
+      const user = await User.findById(args.artistID).lean();
 
       if (user) {
-        await User.findByIdAndUpdate(
-          args.userID,
+        await User.updateOne(
+          { _id: args.userID },
           { $pull: { likedArtists: new ObjectId(args.artistID as string) } },
           {
             new: true,
           }
-        );
+        ).lean();
       }
 
       return true;

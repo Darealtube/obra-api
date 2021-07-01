@@ -2,6 +2,13 @@ import { ApolloServer } from "apollo-server-micro";
 import { schema } from "../../apollo/schema";
 import mongoose from "mongoose";
 
+function parseCookies(str) {
+  let rx = /([^;=\s]*)=([^;]*)/g;
+  let obj = {};
+  for (let m; (m = rx.exec(str)); ) obj[m[1]] = decodeURIComponent(m[2]);
+  return obj;
+}
+
 async function dbConnect() {
   // check if we have a connection to the database or if it's currently
   // connecting or disconnecting (readyState 1, 2 and 3)
@@ -18,7 +25,20 @@ async function dbConnect() {
 
 const apolloServer = new ApolloServer({
   schema,
-  context: dbConnect(),
+  context: async ({ req }) => ({
+    db: dbConnect(),
+    session:
+      parseCookies(req.headers.cookie)["next-auth.session-token"] || null,
+  }),
+  formatError: (err) => {
+    // Don't give the specific errors to the client.
+    if (err.message.startsWith("Database Error: ")) {
+      return new Error("Internal server error");
+    }
+    // Otherwise return the original error. The error can also
+    // be manipulated in other ways, as long as it's returned.
+    return err;
+  },
 });
 
 export const config = {

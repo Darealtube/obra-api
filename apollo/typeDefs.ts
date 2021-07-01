@@ -1,6 +1,14 @@
 import { gql } from "apollo-server-micro";
 
 export const typeDefs = gql`
+  directive @rateLimit(
+    max: Int
+    window: String
+    message: String
+    identityArgs: [String]
+    arrayLengthField: String
+  ) on FIELD_DEFINITION
+
   type User {
     id: ID
     name: String
@@ -131,7 +139,17 @@ export const typeDefs = gql`
 
   type Mutation {
     likePost(postId: ID!, userID: ID!): Boolean!
+      @rateLimit(
+        window: "10s"
+        max: 5
+        message: "You are doing that too often. "
+      )
     unlikePost(postId: ID!, userID: ID!): Boolean!
+      @rateLimit(
+        window: "10s"
+        max: 5
+        message: "You are doing that too often."
+      )
     editPost(
       postId: ID
       title: String!
@@ -179,9 +197,24 @@ export const typeDefs = gql`
     ): User
     readNotif(notifArray: [ID!]): Boolean!
     createComment(postID: ID!, author: ID!, content: String!): Comment!
+      @rateLimit(
+        window: "30s"
+        max: 3
+        message: "You are commenting too often. Please wait a bit to comment again. This is to prevent spam. "
+      )
     deleteComment(commentID: ID!): Boolean!
     likeArtist(artistID: ID!, userID: ID!): Boolean!
+      @rateLimit(
+        window: "10s"
+        max: 5
+        message: "You are doing that too often. "
+      )
     unlikeArtist(artistID: ID!, userID: ID!): Boolean!
+      @rateLimit(
+        window: "10s"
+        max: 5
+        message: "You are doing that too often. "
+      )
     viewPost(viewed: ID!, userId: ID!): Boolean!
     commissionArtist(
       artistName: String!
