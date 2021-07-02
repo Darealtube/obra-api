@@ -464,9 +464,9 @@ export const resolvers = {
 
       return true;
     },
-    async createComment(_parent, args, _context, _info) {
+    async createComment(_parent, args, context, _info) {
       const comment = await Comment.create(args);
-
+      console.log(context);
       await Post.findByIdAndUpdate(args.postID, {
         $push: { comments: comment._id as never },
       });
