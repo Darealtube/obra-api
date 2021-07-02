@@ -198,7 +198,7 @@ export const typeDefs = gql`
     readNotif(notifArray: [ID!]): Boolean!
     createComment(postID: ID!, author: ID!, content: String!): Comment!
       @rateLimit(
-        window: "30s"
+        window: "60s"
         max: 3
         message: "You are commenting too often. Please wait a bit to comment again. This is to prevent spam. "
       )
