@@ -1,15 +1,6 @@
 import { ApolloServer } from "apollo-server-micro";
 import { schema } from "../../apollo/schema";
 import mongoose from "mongoose";
-import { NextApiRequest } from "next";
-
-const getUserIp = (request: NextApiRequest) => {
-  const headers = request.headers;
-  if (!headers) return null;
-  const ipAddress = headers["x-forwarded-for"];
-  if (!ipAddress) return null;
-  return ipAddress as string;
-};
 
 async function dbConnect() {
   // check if we have a connection to the database or if it's currently
@@ -27,10 +18,7 @@ async function dbConnect() {
 
 const apolloServer = new ApolloServer({
   schema,
-  context: async ({ req }) => ({
-    db: dbConnect(),
-    ip: getUserIp(req),
-  }),
+  context: dbConnect(),
   formatError: (err) => {
     // Don't give the specific errors to the client.
     if (err.message.startsWith("Database Error: ")) {
