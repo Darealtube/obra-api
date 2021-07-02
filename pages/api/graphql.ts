@@ -1,13 +1,15 @@
 import { ApolloServer } from "apollo-server-micro";
 import { schema } from "../../apollo/schema";
 import mongoose from "mongoose";
+import { NextApiRequest } from "next";
 
-function parseCookies(str) {
-  let rx = /([^;=\s]*)=([^;]*)/g;
-  let obj = {};
-  for (let m; (m = rx.exec(str)); ) obj[m[1]] = decodeURIComponent(m[2]);
-  return obj;
-}
+const getUserIp = (request: NextApiRequest) => {
+  const headers = request.headers;
+  if (!headers) return null;
+  const ipAddress = headers["x-forwarded-for"];
+  if (!ipAddress) return null;
+  return ipAddress as string;
+};
 
 async function dbConnect() {
   // check if we have a connection to the database or if it's currently
@@ -27,8 +29,7 @@ const apolloServer = new ApolloServer({
   schema,
   context: async ({ req }) => ({
     db: dbConnect(),
-    session:
-      parseCookies(req.headers.cookie)["next-auth.session-token"] || null,
+    ip: getUserIp(req),
   }),
   formatError: (err) => {
     // Don't give the specific errors to the client.
