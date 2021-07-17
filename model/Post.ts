@@ -10,6 +10,7 @@ const PostSchema = new mongoose.Schema({
   sale: String,
   price: String,
   art: String,
+  watermarkArt: String,
   tags: Array,
   title: {
     type: String,

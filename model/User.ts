@@ -26,6 +26,14 @@ const UserSchema = new mongoose.Schema({
   commissions: Array,
   yourCommissions: Array,
   admin: Boolean,
+  cart: [{
+    _id: mongoose.Schema.Types.ObjectId,
+    postID: mongoose.Schema.Types.ObjectId,
+    dateAdded: String,
+    cost: Number,
+  }],
+  commissionPoster: String,
+  commissionRates: Array,
   // More to come
 });
 

@@ -216,6 +216,11 @@ export const resolvers = {
       }
     },
   },
+  Cart: {
+    async postID(parent, _args, _context, _info) {
+      return Post.findById(parent.postID);
+    },
+  },
   User: {
     async likedPosts(parent, args, _context, _info) {
       const posts = await Post.find({ _id: { $in: parent.likedPosts } });
@@ -272,6 +277,7 @@ export const resolvers = {
     async yourCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.yourCommissions },
+        finished: false,
       });
       const commArray = commissions.sort((a, b) =>
         moment(b.dateIssued).diff(a.dateIssued)
@@ -281,7 +287,8 @@ export const resolvers = {
     },
     async finishedCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
-        _id: { $in: parent.commissions, finished: true },
+        _id: { $in: parent.commissions },
+        finished: true,
       });
       const commArray = commissions.sort((a, b) =>
         moment(b.dateIssued).diff(a.dateIssued)
@@ -291,17 +298,20 @@ export const resolvers = {
     },
     async yourFinishedCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
-        _id: { $in: parent.yourCommissions, finished: true },
+        _id: { $in: parent.yourCommissions },
+        finished: true,
       });
       const commArray = commissions.sort((a, b) =>
         moment(b.dateIssued).diff(a.dateIssued)
       );
       const data = relayPaginate(commArray, args.after, args.limit);
-      return data;
+      return { ...data };
     },
     async yourPendingCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
-        _id: { $in: parent.yourCommissions, accepted: true },
+        _id: { $in: parent.yourCommissions },
+        accepted: true,
+        finished: false,
       });
       const commArray = commissions.sort((a, b) =>
         moment(b.dateIssued).diff(a.dateIssued)
@@ -346,6 +356,16 @@ export const resolvers = {
         accepted: false,
       });
       return commissions.length;
+    },
+    async cart(parent, args, _context, _info) {
+      let totalCost: number = 0;
+      const data = relayPaginate(parent.cart, args.after, args.limit);
+      const costs = parent.cart.map((item) => item.cost);
+      const idList = parent.cart.map((item) => item._id);
+      if (parent.cart.length != 0) {
+        totalCost = costs?.reduce((a, b) => a + b);
+      }
+      return { ...data, totalCost, idList };
     },
   },
   Post: {
@@ -437,6 +457,8 @@ export const resolvers = {
     async deletePost(_parent, args, _context, _info) {
       const post = await Post.findById(args.postId);
       await Post.deleteOne({ _id: args.postId });
+      await Comment.deleteMany({ postID: args.postId });
+      await Report.deleteMany({ reportedId: args.postId });
       await User.findOneAndUpdate(
         { _id: post.author },
         { $pull: { posts: new ObjectId(args.postId as string) } },
@@ -528,6 +550,20 @@ export const resolvers = {
 
       return data;
     },
+    async editUserComm(_parent,args,_context,_info) {
+      const data = await User.findByIdAndUpdate(
+        args.userId,
+        {
+          commissionPoster: args.commissionPoster,
+          commissionRates: args.commissionRates,
+        },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+      return data;
+    },
     async readNotif(_parent, args, _context, _info) {
       await Notification.updateMany(
         { _id: { $in: args.notifArray } },
@@ -590,7 +626,7 @@ export const resolvers = {
     },
     async commissionArtist(_parent, args, _context, _info) {
       const toArtist = await User.findOne({ name: args.artistName }).lean();
-      const deadline = moment().add(args.deadline, "d");
+      const deadline = args.deadline ? moment().add(args.deadline, "d") : null;
 
       if (toArtist) {
         const commission = await Commission.create({
@@ -602,6 +638,8 @@ export const resolvers = {
           width: args.width,
           height: args.height,
           deadline,
+          price: args.price,
+          rates: args.rates,
         });
 
         const fromUser = await User.findByIdAndUpdate(
@@ -708,6 +746,42 @@ export const resolvers = {
 
       return commission;
     },
+    async finishCommission(_parent, args, _context, _info) {
+      const commission = await Commission.findByIdAndUpdate(
+        args.commissionId,
+        {
+          finished: true,
+          finishedArt: args.finishedArt,
+          finishedwatermarkArt: args.finishedwatermarkArt,
+          message: args.message,
+        },
+        { new: true }
+      );
+
+      const user = await User.findByIdAndUpdate(commission.toArtist._id, {
+        $pull: {
+          commissions: new mongoose.Types.ObjectId(args.commissionId as string),
+        },
+      });
+
+      const notification = await Notification.create({
+        commissioner: commission.toArtist._id,
+        date: moment().format("l"),
+        description: `Your commission to ${
+          user.name
+        } has been finished. Message: ${args.message ? args.message : ""}`,
+        read: false,
+      });
+
+      await User.updateOne(
+        { _id: commission.fromUser._id },
+        {
+          $push: { notifications: notification._id },
+        }
+      );
+
+      return true;
+    },
     async sendReport(_parent, args, _context, _info) {
       let reported;
       switch (args.type) {
@@ -761,6 +835,65 @@ export const resolvers = {
       });
 
       return true;
+    },
+    async addToCart(_parent, args, _context, _info) {
+      await User.updateOne(
+        { _id: args.userID },
+        {
+          $push: {
+            cart: {
+              _id: new mongoose.Types.ObjectId(),
+              postID: args.postID,
+              dateAdded: moment().format(),
+              cost: args.cost,
+            },
+          },
+        }
+      );
+      return true;
+    },
+    async removeFromCart(_parent, args, _context, _info) {
+      let totalCost: number = 0;
+      const user = await User.findByIdAndUpdate(
+        args.userID,
+        {
+          $pull: {
+            cart: {
+              _id: new mongoose.Types.ObjectId(args.itemID),
+            },
+          },
+        },
+        { new: true }
+      );
+      const costs = user.cart.map((item) => item.cost);
+      const idList = user.cart.map((item) => item._id);
+      if (user.cart.length != 0) {
+        totalCost = costs?.reduce((a, b) => a + b);
+      }
+
+      return { totalCost, idList };
+    },
+    async removeSelectedFromCart(_parent, args, _context, _info) {
+      let totalCost: number = 0;
+      const user = await User.findByIdAndUpdate(
+        args.userID,
+        {
+          $pull: {
+            cart: {
+              _id: { $in: args.selected },
+            },
+          },
+        },
+        { new: true }
+      );
+
+      const costs = user.cart.map((item) => item.cost);
+      const idList = user.cart.map((item) => item._id);
+      if (user.cart.length != 0) {
+        totalCost = costs?.reduce((a, b) => a + b);
+      }
+
+      return { totalCost, idList };
     },
   },
 };

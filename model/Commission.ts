@@ -14,6 +14,8 @@ const CommissionSchema = new mongoose.Schema({
   width: Number,
   height: Number,
   deadline: String,
+  price: Number,
+  rates: Array,
   dateIssued: {
     type: String,
     default: now,
@@ -26,6 +28,9 @@ const CommissionSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  finishedArt: String,
+  finishedwatermarkArt: String,
+  message: String,
 });
 
 export default mongoose.models.Commission ||
