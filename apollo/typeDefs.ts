@@ -127,7 +127,7 @@ export const typeDefs = gql`
     newPosts(after: ID, limit: Int): PostConnection
     featuredPosts(after: ID, limit: Int): PostConnection
     isLikedArtist(userID: ID, artistName: String!): Boolean
-    isLikedPost(postID: ID!, userID: ID): Boolean
+    isLikedorAddedPost(postID: ID!, userID: ID): LikedorAdded
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
@@ -136,6 +136,11 @@ export const typeDefs = gql`
     isAdmin(id: ID): Boolean
     reportId(reportedId: ID!): Report
     reportCount: ReportCount
+  }
+
+  type LikedorAdded {
+    isLiked: Boolean
+    isAdded: Boolean
   }
 
   type ReportCount {
@@ -251,6 +256,7 @@ export const typeDefs = gql`
     ): Boolean!
     deleteReport(reportId: ID!): Boolean!
     addToCart(userID: ID!, postID: ID, cost: Float): Boolean!
+    unaddToCart(userID: ID!, postID: ID): Boolean!
     removeFromCart(userID: ID!, itemID: ID): RemoveCartResult
     removeSelectedFromCart(userID: ID!, selected: [ID]): RemoveCartResult
   }

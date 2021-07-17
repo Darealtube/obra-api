@@ -94,10 +94,20 @@ export const resolvers = {
 
       return artist && user ? user.likedArtists.includes(artist._id) : false;
     },
-    async isLikedPost(_parent, args, _context, _info) {
+    async isLikedorAddedPost(_parent, args, _context, _info) {
+      let id: string | mongoose.Types.ObjectId;
+      let id2: string | mongoose.Types.ObjectId;
+      try {
+        id = new mongoose.Types.ObjectId(args.userID);
+        id2 = new mongoose.Types.ObjectId(args.postID);
+      } catch (error) {
+        return null;
+      }
       const user = await User.findById(args.userID);
-
-      return user ? user.likedPosts.includes(args.postID) : false;
+      const isLiked = user.likedPosts.includes(args.postID);
+      const userCart = user.cart.map((item) => item.postID);
+      const isAdded = userCart.includes(args.postID);
+      return { isLiked, isAdded };
     },
     async userExists(_parent, args, _context, _info) {
       const origUser = await User.findById(args.userId).lean();
@@ -550,7 +560,7 @@ export const resolvers = {
 
       return data;
     },
-    async editUserComm(_parent,args,_context,_info) {
+    async editUserComm(_parent, args, _context, _info) {
       const data = await User.findByIdAndUpdate(
         args.userId,
         {
@@ -846,6 +856,19 @@ export const resolvers = {
               postID: args.postID,
               dateAdded: moment().format(),
               cost: args.cost,
+            },
+          },
+        }
+      );
+      return true;
+    },
+    async unaddToCart(_parent, args, _context, _info) {
+      await User.updateOne(
+        { _id: args.userID },
+        {
+          $pull: {
+            cart: {
+              postID: args.postID,
             },
           },
         }
