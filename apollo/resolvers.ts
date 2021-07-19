@@ -104,10 +104,14 @@ export const resolvers = {
         return null;
       }
       const user = await User.findById(args.userID);
-      const isLiked = user.likedPosts.includes(args.postID);
-      const userCart = user.cart.map((item) => item.postID);
-      const isAdded = userCart.includes(args.postID);
-      return { isLiked, isAdded };
+      if (user) {
+        const isLiked = user.likedPosts.includes(args.postID);
+        const userCart = user.cart.map((item) => item.postID);
+        const isAdded = userCart.includes(args.postID);
+        return { isLiked, isAdded };
+      } else {
+        return { isLiked: false, isAdded: false };
+      }
     },
     async userExists(_parent, args, _context, _info) {
       const origUser = await User.findById(args.userId).lean();
