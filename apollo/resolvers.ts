@@ -55,11 +55,11 @@ export const resolvers = {
         const recommended1 = await Post.find({
           tags: { $in: [...post.tags] },
           _id: { $ne: new ObjectId(args.id as string) },
-        });
+        }).sort({ date: -1 });
         const recommended2 = await Post.find({
           author: post.author,
           _id: { $ne: new ObjectId(args.id as string) },
-        });
+        }).sort({ date: -1 });
         const merge = Object.values(
           recommended2.concat(recommended1).reduce((r, o) => {
             r[o.id] = o;
@@ -73,17 +73,15 @@ export const resolvers = {
       }
     },
     async newPosts(_parent, args, _context, _info) {
-      const posts = await Post.find({});
-
-      const newPosts = posts
-        .sort((a, b) => moment(b.date).diff(a.date))
-        .filter((post) => moment().diff(post.date, "days") <= 7);
-
-      const data = relayPaginate(newPosts, args.after, args.limit);
+      const weekFromNow = moment().subtract(7, "days").toDate();
+      const posts = await Post.find({ date: { $gte: weekFromNow } }).sort({
+        date: -1,
+      });
+      const data = relayPaginate(posts, args.after, args.limit);
       return data;
     },
     async featuredPosts(_parent, args, _context, _info) {
-      const posts = await Post.find({ likes: { $gt: 0 } }); // WILL MODIFY BASED ON WEBSITE'S PERFORMANCE
+      const posts = await Post.find({ likes: { $gt: 0 } }).sort({ likes: -1 }); // WILL MODIFY BASED ON WEBSITE'S PERFORMANCE
 
       const data = relayPaginate(posts, args.after, args.limit);
       return data;
@@ -138,7 +136,7 @@ export const resolvers = {
       return user ? true : false;
     },
     async reports(_parent, args, _context, _info) {
-      const reports = await Report.find({ type: args.type });
+      const reports = await Report.find({ type: args.type }).sort({ date: -1 });
       const data = relayPaginate(reports, args.after, args.limit);
       return data;
     },
@@ -200,10 +198,16 @@ export const resolvers = {
     async author(parent, _args, _context, _info) {
       return User.findById(parent.author);
     },
+    async date(parent, _args, _context, _info) {
+      return moment(parent.date).fromNow();
+    },
   },
   Notification: {
     async commissioner(parent, _args, _context, _info) {
       return User.findById(parent.commissioner);
+    },
+    async date(parent, _args, _context, _info) {
+      return moment(parent.date).format("l");
     },
   },
   Commission: {
@@ -212,6 +216,12 @@ export const resolvers = {
     },
     async toArtist(parent, _args, _context, _info) {
       return User.findById(parent.toArtist);
+    },
+    async dateIssued(parent, _args, _context, _info) {
+      return moment(parent.dateIssued).format("l");
+    },
+    async deadline(parent, _args, _context, _info) {
+      return parent.deadline ? moment(parent.deadline).format("l") : null;
     },
   },
   Report: {
@@ -229,29 +239,36 @@ export const resolvers = {
         return await User.findById(parent.reportedId);
       }
     },
+    async date(parent, _args, _context, _info) {
+      return moment(parent.date).format("l");
+    },
   },
   Cart: {
     async postID(parent, _args, _context, _info) {
       return Post.findById(parent.postID);
     },
+    async dateAdded(parent, _args, _context, _info) {
+      return moment(parent.dateAdded).format("l");
+    },
   },
   User: {
     async likedPosts(parent, args, _context, _info) {
-      const posts = await Post.find({ _id: { $in: parent.likedPosts } });
+      const posts = await Post.find({ _id: { $in: parent.likedPosts } }).sort({
+        date: -1,
+      });
       const data = relayPaginate(posts, args.after, args.limit);
       return data;
     },
     async posts(parent, args, _context, _info) {
-      const posts = await Post.find({ author: parent.id });
+      const posts = await Post.find({ author: parent.id }).sort({
+        date: -1,
+      });
       const data = relayPaginate(posts, args.after, args.limit);
       return data;
     },
     async likedArtists(parent, args, _context, _info) {
-      const users = await User.find({});
-      const usersArray = users.filter((user) =>
-        parent.likedArtists.includes(user._id)
-      );
-      const data = relayPaginate(usersArray, args.after, args.limit);
+      const users = await User.find({ _id: { $in: parent.likedArtists } });
+      const data = relayPaginate(users, args.after, args.limit);
       return data;
     },
     async homeRecommended(parent, args, _context, _info) {
@@ -261,7 +278,7 @@ export const resolvers = {
       const artistsPostArray = _.flatten(artists.map((artist) => artist.posts));
       const posts = await Post.find({
         _id: { $in: artistsPostArray, $nin: historyArray },
-      });
+      }).sort({ date: -1 });
       const data = relayPaginate(posts, args.after, args.limit);
       return data;
     },
@@ -269,99 +286,63 @@ export const resolvers = {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
         accepted: true,
-      });
-      const commArray = commissions.sort((a, b) =>
-        moment(b.deadline).diff(a.deadline)
-      );
-      const data = relayPaginate(commArray, args.after, args.limit);
+      }).sort({ dateIssued: -1 });
+      const data = relayPaginate(commissions, args.after, args.limit);
       return data;
     },
     async pendingCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
         accepted: false,
-      });
-
-      const commArray = commissions.sort((a, b) =>
-        moment(b.deadline).diff(a.deadline)
-      );
-      const data = relayPaginate(commArray, args.after, args.limit);
+      }).sort({ dateIssued: -1 });
+      const data = relayPaginate(commissions, args.after, args.limit);
       return data;
     },
     async yourCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.yourCommissions },
         finished: false,
-      });
-      const commArray = commissions.sort((a, b) =>
-        moment(b.dateIssued).diff(a.dateIssued)
-      );
-      const data = relayPaginate(commArray, args.after, args.limit);
+      }).sort({ dateIssued: -1 });
+      const data = relayPaginate(commissions, args.after, args.limit);
       return data;
     },
     async finishedCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
         finished: true,
-      });
-      const commArray = commissions.sort((a, b) =>
-        moment(b.dateIssued).diff(a.dateIssued)
-      );
-      const data = relayPaginate(commArray, args.after, args.limit);
+      }).sort({ dateIssued: -1 });
+      const data = relayPaginate(commissions, args.after, args.limit);
       return data;
     },
     async yourFinishedCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.yourCommissions },
         finished: true,
-      });
-      const commArray = commissions.sort((a, b) =>
-        moment(b.dateIssued).diff(a.dateIssued)
-      );
-      const data = relayPaginate(commArray, args.after, args.limit);
-      return { ...data };
+      }).sort({ dateIssued: -1 });
+      const data = relayPaginate(commissions, args.after, args.limit);
+      return data;
     },
     async yourPendingCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.yourCommissions },
         accepted: true,
         finished: false,
-      });
-      const commArray = commissions.sort((a, b) =>
-        moment(b.dateIssued).diff(a.dateIssued)
-      );
-      const data = relayPaginate(commArray, args.after, args.limit);
+      }).sort({ dateIssued: -1 });
+      const data = relayPaginate(commissions, args.after, args.limit);
       return data;
     },
     async notifications(parent, args, _context, _info) {
       const notifs = await Notification.find({
         _id: { $in: parent.notifications },
-      });
+      }).sort({ date: -1 });
       const read = notifs.filter((notif) => notif.read === false);
       const idList = notifs.map((notif) => notif._id);
-      const cursor = notifs
-        .map(function (e) {
-          return e.id;
-        })
-        .indexOf(args.after);
-
-      const final = notifs.slice(
-        args.after && cursor != -1 ? cursor + 1 : 0,
-        args.after && cursor != -1 ? args.limit + cursor + 1 : args.limit
-      );
+      const data = relayPaginate(notifs, args.after, args.limit);
 
       return {
+        ...data,
         totalUnreadCount: Math.abs(read.length),
-        totalCount: notifs.length,
         idList: idList,
-        pageInfo: {
-          endCursor: final[final.length - 1]?.id,
-          hasNextPage:
-            final[final.length - 1]?.id == notifs[notifs.length - 1]?.id
-              ? false
-              : true,
-        },
-        edges: final.map((a) => ({ node: a })),
       };
     },
     async commissionCount(parent, _args, _context, _info) {
@@ -387,12 +368,15 @@ export const resolvers = {
       return User.findById(parent.author);
     },
     async comments(parent, args, _context, _info) {
-      const comments = await Comment.find({});
-      const commentsArray = comments
-        .sort((a, b) => moment(b.date).unix() - moment(a.date).unix())
-        .filter((comment) => parent.comments.includes(comment._id));
-      const data = relayPaginate(commentsArray, args.after, args.limit);
+      const comments = await Comment.find({
+        _id: { $in: parent.comments },
+      }).sort({ date: -1 });
+
+      const data = relayPaginate(comments, args.after, args.limit);
       return data;
+    },
+    async date(parent, _args, _context, _info) {
+      return moment(parent.date).format("l");
     },
   },
   Mutation: {
@@ -491,7 +475,6 @@ export const resolvers = {
     },
     async createPost(_parent, args, _context, _info) {
       const post = await Post.create(args); // from body (for now)
-
       await User.findOneAndUpdate(
         { _id: post.author },
         // @ts-ignore
@@ -628,7 +611,7 @@ export const resolvers = {
         {
           userId: args.userId,
           viewed: args.viewed,
-          lastDateViewed: moment().format(),
+          lastDateViewed: moment().toDate(),
         },
         {
           upsert: true,
@@ -640,7 +623,9 @@ export const resolvers = {
     },
     async commissionArtist(_parent, args, _context, _info) {
       const toArtist = await User.findOne({ name: args.artistName }).lean();
-      const deadline = args.deadline ? moment().add(args.deadline, "d") : null;
+      const deadline = args.deadline
+        ? moment().add(args.deadline, "d").toDate()
+        : null;
 
       if (toArtist) {
         const commission = await Commission.create({
@@ -671,7 +656,6 @@ export const resolvers = {
         const notification = await Notification.create({
           commissionId: commission._id,
           commissioner: args.userId,
-          date: moment().format("l"),
           description: `You have a new commission request from ${fromUser.name}`,
           read: false,
         });
@@ -714,7 +698,6 @@ export const resolvers = {
 
       const notification = await Notification.create({
         commissioner: user._id,
-        date: moment().format("l"),
         description: `Your commission to ${
           user.name
         } has been rejected. Reason: ${args.reason ? args.reason : ""}`,
@@ -742,7 +725,6 @@ export const resolvers = {
 
       const notification = await Notification.create({
         commissioner: user._id,
-        date: moment().format("l"),
         description: `Your commission to ${
           user.name
         } has been accepted. Message: ${args.message ? args.message : ""}`,
@@ -780,7 +762,6 @@ export const resolvers = {
 
       const notification = await Notification.create({
         commissioner: commission.toArtist._id,
-        date: moment().format("l"),
         description: `Your commission to ${
           user.name
         } has been finished. Message: ${args.message ? args.message : ""}`,
@@ -858,7 +839,7 @@ export const resolvers = {
             cart: {
               _id: new mongoose.Types.ObjectId(),
               postID: args.postID,
-              dateAdded: moment().format(),
+              dateAdded: moment().toDate(),
               cost: args.cost,
             },
           },

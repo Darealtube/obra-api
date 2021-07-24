@@ -2,7 +2,7 @@ import moment from "moment";
 import mongoose from "mongoose";
 
 const now = () => {
-  return moment().format();
+  return moment().toDate();
 };
 
 const CommissionSchema = new mongoose.Schema({
@@ -13,11 +13,11 @@ const CommissionSchema = new mongoose.Schema({
   sampleArt: String,
   width: Number,
   height: Number,
-  deadline: String,
+  deadline: mongoose.Schema.Types.Date,
   price: Number,
   rates: Array,
   dateIssued: {
-    type: String,
+    type: mongoose.Schema.Types.Date,
     default: now,
   },
   finished: {

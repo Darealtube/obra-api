@@ -1,11 +1,15 @@
 import mongoose from "mongoose";
 import moment from "moment";
 
+const now = () => {
+  return moment().toDate();
+};
+
 const PostSchema = new mongoose.Schema({
   author: mongoose.Schema.Types.ObjectId,
   date: {
-    type: String,
-    default: moment().format("l"),
+    type: mongoose.Schema.Types.Date,
+    default: now,
   },
   sale: String,
   price: String,

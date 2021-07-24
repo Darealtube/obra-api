@@ -29,7 +29,7 @@ const UserSchema = new mongoose.Schema({
   cart: [{
     _id: mongoose.Schema.Types.ObjectId,
     postID: mongoose.Schema.Types.ObjectId,
-    dateAdded: String,
+    dateAdded: mongoose.Schema.Types.Date,
     cost: Number,
   }],
   commissionPoster: String,

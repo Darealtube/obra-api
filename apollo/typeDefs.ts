@@ -170,7 +170,6 @@ export const typeDefs = gql`
       tags: [String!]
     ): Post
     createPost(
-      date: String!
       tags: [String]
       title: String!
       description: String!
@@ -240,7 +239,6 @@ export const typeDefs = gql`
       senderId: ID!
       reportedId: ID
       type: String!
-      date: String!
       title: String
       description: String!
       reason: String!

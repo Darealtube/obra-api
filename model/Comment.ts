@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 import moment from "moment";
 
 const now = () => {
-  return moment().format();
+  return moment().toDate();
 };
 
 const CommentSchema = new mongoose.Schema({
   postID: mongoose.Schema.Types.ObjectId,
   author: mongoose.Schema.Types.ObjectId,
   date: {
-    type: String,
+    type: mongoose.Schema.Types.Date,
     default: now,
   },
   content: String,

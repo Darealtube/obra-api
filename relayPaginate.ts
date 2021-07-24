@@ -14,15 +14,21 @@ const relayPaginate = (
   after: string,
   limit: number
 ): RelayPaginate => {
+  const realAfterList = finalArray.filter((item) => item._id >= after);
+  const realAfter =
+    realAfterList.length > 0
+      ? realAfterList[realAfterList.length - 1]._id.toString()
+      : null;
+
   const cursor = finalArray
     .map(function (e) {
       return e.id;
     })
-    .indexOf(after);
+    .indexOf(realAfter);
 
   const final = finalArray.slice(
-    after && cursor != -1 ? cursor + 1 : 0,
-    after && cursor != -1 ? limit + cursor + 1 : limit
+    realAfter && cursor != -1 ? cursor + 1 : 0,
+    realAfter && cursor != -1 ? limit + cursor + 1 : limit
   );
 
   return {
