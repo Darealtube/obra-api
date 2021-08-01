@@ -41,7 +41,7 @@ export const typeDefs = gql`
   type Post {
     id: ID!
     date: String!
-    tags: [String]
+    tags: [Tag]
     title: String!
     description: String!
     art: String!
@@ -136,6 +136,12 @@ export const typeDefs = gql`
     isAdmin(id: ID): Boolean
     reportId(reportedId: ID!): Report
     reportCount: ReportCount
+    searchTags(tag: String): [Tag]
+  }
+
+  type Tag {
+    name: String
+    artCount: Int
   }
 
   type LikedorAdded {
@@ -234,7 +240,12 @@ export const typeDefs = gql`
     deleteNotification(notifId: ID!, userId: ID!): Boolean!
     deleteCommission(commissionId: ID!, reason: String): Boolean!
     acceptCommission(commissionId: ID!, message: String): Commission!
-    finishCommission(commissionId: ID!, finishedArt: String!, message: String!, finishedwatermarkArt: String!): Boolean!
+    finishCommission(
+      commissionId: ID!
+      finishedArt: String!
+      message: String!
+      finishedwatermarkArt: String!
+    ): Boolean!
     sendReport(
       senderId: ID!
       reportedId: ID

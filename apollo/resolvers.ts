@@ -11,6 +11,7 @@ import Notification from "../model/Notification";
 import nodemailer from "nodemailer";
 import Report from "../model/Report";
 import mongoose from "mongoose";
+import Tag from "../model/Tag";
 
 export const resolvers = {
   Query: {
@@ -174,6 +175,13 @@ export const resolvers = {
         bugReport: bugReports,
         totalCount: postReports + commentReports + userReports + bugReports,
       };
+    },
+    async searchTags(_parent, args, _context, _info) {
+      const searchResult = await Tag.find({
+        name: { $regex: new RegExp(args.tag.trim(), "i") },
+      }).lean();
+
+      return searchResult;
     },
   },
   ReportedId: {
@@ -367,6 +375,12 @@ export const resolvers = {
     async author(parent, _args, _context, _info) {
       return User.findById(parent.author);
     },
+    async tags(parent, _args, _context, _info) {
+      const modTag = parent.tags.map((tag: string) => tag.toUpperCase());
+      const tagList = await Tag.find({ name: { $in: modTag } }).lean();
+
+      return tagList;
+    },
     async comments(parent, args, _context, _info) {
       const comments = await Comment.find({
         _id: { $in: parent.comments },
@@ -443,17 +457,50 @@ export const resolvers = {
       return true;
     },
     async editPost(_parent, args, _context, _info) {
-      const post = await Post.findOneAndUpdate(
-        { _id: args.postId },
-        { title: args.title, description: args.description, tags: args.tags },
+      const origPost = await Post.findById(args.postId);
+      const newTags = args.tags.filter((tag) => !origPost.tags.includes(tag));
+      const post = await Post.findByIdAndUpdate(
+        args.postId,
         {
-          new: true,
+          title: args.title,
+          description: args.description,
+          tags: args.tags,
+        },
+        { new: true }
+      );
+
+      await Tag.bulkWrite(
+        newTags.map((tag: string) => ({
+          updateOne: {
+            filter: { name: tag },
+            update: {
+              $inc: {
+                artCount: 1 as never,
+              },
+            },
+            upsert: true,
+          },
+        }))
+      );
+
+      await Tag.updateMany(
+        {
+          name: { $in: origPost.tags, $nin: post.tags },
+        },
+        {
+          $inc: {
+            artCount: -1 as never,
+          },
         }
       );
+
+      await Tag.deleteMany({ artCount: 0 });
+
       return post;
     },
     async deletePost(_parent, args, _context, _info) {
       const post = await Post.findById(args.postId);
+      const tags = post.tags.map((tag: string) => tag.toUpperCase());
       await Post.deleteOne({ _id: args.postId });
       await Comment.deleteMany({ postID: args.postId });
       await Report.deleteMany({ reportedId: args.postId });
@@ -471,6 +518,16 @@ export const resolvers = {
           new: true,
         }
       );
+      await Tag.updateMany(
+        {
+          name: { $in: tags },
+        },
+        {
+          $inc: {
+            artCount: -1 as never,
+          },
+        }
+      );
       return true;
     },
     async createPost(_parent, args, _context, _info) {
@@ -479,6 +536,20 @@ export const resolvers = {
         { _id: post.author },
         // @ts-ignore
         { $push: { posts: post._id } }
+      );
+
+      await Tag.bulkWrite(
+        args.tags.map((tag: string) => ({
+          updateOne: {
+            filter: { name: tag },
+            update: {
+              $inc: {
+                artCount: 1 as never,
+              },
+            },
+            upsert: true,
+          },
+        }))
       );
 
       return true;
