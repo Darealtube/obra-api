@@ -142,6 +142,11 @@ export const typeDefs = gql`
   }
 
   type Tag {
+    name: String
+    artCount: Int
+  }
+
+  type Category {
     id: ID
     name: String
     artCount: Int
@@ -326,11 +331,16 @@ export const typeDefs = gql`
   }
 
   type TagConnection {
-    edges: [Tag]
+    pageInfo: PageInfo
+    edges: [TagEdge]
+  }
+
+  type TagEdge {
+    node: Tag
   }
 
   type CategoryEdge {
-    node: Tag
+    node: Category
   }
 
   type CartEdge {

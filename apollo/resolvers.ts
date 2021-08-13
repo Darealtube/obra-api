@@ -199,7 +199,11 @@ export const resolvers = {
         return { type: args.type, ...data };
       } else if (args.type == "tag") {
         if (!args.key.trim()) {
-          return { type: args.type, edges: [] };
+          return {
+            type: args.type,
+            edges: [],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          };
         } else {
           const searchTagResult = await Tag.find({
             name: { $regex: new RegExp(args.key.trim(), "i") },
@@ -209,7 +213,13 @@ export const resolvers = {
             .limit(10)
             .lean();
 
-          return { type: args.type, edges: searchTagResult };
+          const data = relayPaginate({
+            finalArray: searchTagResult,
+            limit: args.limit,
+            cursorIdentifier: "name",
+          });
+
+          return { type: args.type, ...data };
         }
       } else {
         const searchCategoryResult = await Tag.find({
