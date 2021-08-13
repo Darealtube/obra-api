@@ -5,7 +5,7 @@ import moment from "moment";
 import Comment from "../model/Comment";
 import History from "../model/History";
 import _ from "lodash";
-import relayPaginate from "../relayPaginate";
+import relayPaginate, { Decursorify } from "../relayPaginate";
 import Commission from "../model/Commission";
 import Notification from "../model/Notification";
 import nodemailer from "nodemailer";
@@ -15,14 +15,6 @@ import Tag from "../model/Tag";
 
 export const resolvers = {
   Query: {
-    users(_parent, _args, _context, _info) {
-      return User.find({});
-    },
-    async posts(_parent, args, _context, _info) {
-      const posts = await Post.find({});
-      const data = relayPaginate(posts, args.after, args.limit);
-      return data;
-    },
     userId(_parent, args, _context, _info) {
       if (!args.id) {
         return null;
@@ -56,35 +48,37 @@ export const resolvers = {
         const recommended1 = await Post.find({
           tags: { $in: [...post.tags] },
           _id: { $ne: new ObjectId(args.id as string) },
-        }).sort({ date: -1 });
-        const recommended2 = await Post.find({
-          author: post.author,
-          _id: { $ne: new ObjectId(args.id as string) },
-        }).sort({ date: -1 });
-        const merge = Object.values(
-          recommended2.concat(recommended1).reduce((r, o) => {
-            r[o.id] = o;
-            return r;
-          }, {})
-        );
-        const data = relayPaginate(merge, args.after, args.limit);
+          ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+        })
+          .sort({ date: -1, _id: -1 })
+          .limit(args.limit);
+        const data = relayPaginate({
+          finalArray: recommended1,
+          cursorIdentifier: "date",
+          limit: args.limit,
+        });
         return data;
       } else {
         return null;
       }
     },
-    async newPosts(_parent, args, _context, _info) {
-      const weekFromNow = moment().subtract(7, "days").toDate();
-      const posts = await Post.find({ date: { $gte: weekFromNow } }).sort({
-        date: -1,
-      });
-      const data = relayPaginate(posts, args.after, args.limit);
-      return data;
-    },
-    async featuredPosts(_parent, args, _context, _info) {
-      const posts = await Post.find({ likes: { $gt: 0 } }).sort({ likes: -1 }); // WILL MODIFY BASED ON WEBSITE'S PERFORMANCE
+    async trendingPosts(_parent, args, _context, _info) {
+      const posts = await Post.find({
+        likes: { $gt: 0 },
+        ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+      })
+        .sort({
+          date: -1,
+          likes: -1,
+          _id: -1,
+        })
+        .limit(args.limit); // WILL MODIFY BASED ON WEBSITE'S PERFORMANCE
 
-      const data = relayPaginate(posts, args.after, args.limit);
+      const data = relayPaginate({
+        finalArray: posts,
+        cursorIdentifier: "date",
+        limit: args.limit,
+      });
       return data;
     },
     async isLikedArtist(_parent, args, _context, _info) {
@@ -137,8 +131,17 @@ export const resolvers = {
       return user ? true : false;
     },
     async reports(_parent, args, _context, _info) {
-      const reports = await Report.find({ type: args.type }).sort({ date: -1 });
-      const data = relayPaginate(reports, args.after, args.limit);
+      const reports = await Report.find({
+        type: args.type,
+        ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+      })
+        .sort({ date: -1, _id: -1 })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: reports,
+        cursorIdentifier: "date",
+        limit: args.limit,
+      });
       return data;
     },
     async isAdmin(_parent, args, _context, _info) {
@@ -176,12 +179,75 @@ export const resolvers = {
         totalCount: postReports + commentReports + userReports + bugReports,
       };
     },
-    async searchTags(_parent, args, _context, _info) {
-      const searchResult = await Tag.find({
-        name: { $regex: new RegExp(args.tag.trim(), "i") },
-      }).lean();
+    async search(_parent, args, _context, _info) {
+      if (args.type == "user") {
+        const searchUserResult = await User.find({
+          name: {
+            $regex: new RegExp(args.key.trim(), "i"),
+            ...(args.after && { $gt: Decursorify(args.after) }),
+          },
+        })
+          .sort({ name: 1 })
+          .limit(args.limit);
 
-      return searchResult;
+        const data = relayPaginate({
+          finalArray: searchUserResult,
+          limit: args.limit,
+          cursorIdentifier: "name",
+        });
+
+        return { type: args.type, ...data };
+      } else if (args.type == "tag") {
+        if (!args.key.trim()) {
+          return { type: args.type, edges: [] };
+        } else {
+          const searchTagResult = await Tag.find({
+            name: { $regex: new RegExp(args.key.trim(), "i") },
+            artCount: { $gt: 0 },
+          })
+            .sort({ artCount: -1 })
+            .limit(10)
+            .lean();
+
+          return { type: args.type, edges: searchTagResult };
+        }
+      } else {
+        const searchCategoryResult = await Tag.find({
+          name: {
+            $regex: new RegExp(args.key.trim(), "i"),
+            ...(args.after && { $gt: Decursorify(args.after) }),
+          },
+          artCount: { $gt: 0 },
+        })
+          .sort({ name: 1 })
+          .limit(args.limit);
+
+        const data = relayPaginate({
+          finalArray: searchCategoryResult,
+          limit: args.limit,
+          cursorIdentifier: "name",
+        });
+
+        return { type: args.type, ...data };
+      }
+    },
+    async categoryPosts(_parent, args, _context, _info) {
+      const categoryPosts = await Post.find({
+        tags: { $in: args.category.toUpperCase().trim() },
+        ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+      })
+        .sort({ date: -1, _id: -1 })
+        .limit(args.limit);
+      const categoryPostCount = await Post.countDocuments({
+        tags: { $in: args.category.toUpperCase().trim() },
+      });
+
+      const data = relayPaginate({
+        finalArray: categoryPosts,
+        cursorIdentifier: "date",
+        limit: args.limit,
+      });
+      return { ...data, totalCount: categoryPostCount };
     },
   },
   ReportedId: {
@@ -200,6 +266,20 @@ export const resolvers = {
         return "User";
       }
       return null; // GraphQLError is thrown
+    },
+  },
+  SearchResultType: {
+    async __resolveType(obj) {
+      switch (obj.type) {
+        case "tag":
+          return "TagConnection";
+        case "user":
+          return "UserConnection";
+        case "category":
+          return "CategoryConnection";
+        default:
+          return null;
+      }
     },
   },
   Comment: {
@@ -261,73 +341,122 @@ export const resolvers = {
   },
   User: {
     async likedPosts(parent, args, _context, _info) {
-      const posts = await Post.find({ _id: { $in: parent.likedPosts } }).sort({
-        date: -1,
+      const posts = await Post.find({
+        _id: { $in: parent.likedPosts },
+        ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+      })
+        .sort({
+          date: -1,
+          _id: -1,
+        })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: posts,
+        cursorIdentifier: "date",
+        limit: args.limit,
       });
-      const data = relayPaginate(posts, args.after, args.limit);
       return data;
     },
     async posts(parent, args, _context, _info) {
-      const posts = await Post.find({ author: parent.id }).sort({
-        date: -1,
-      });
-      const data = relayPaginate(posts, args.after, args.limit);
-      return data;
-    },
-    async likedArtists(parent, args, _context, _info) {
-      const users = await User.find({ _id: { $in: parent.likedArtists } });
-      const data = relayPaginate(users, args.after, args.limit);
-      return data;
-    },
-    async homeRecommended(parent, args, _context, _info) {
-      const history = await History.find({ userId: parent.id });
-      const historyArray = history.map((history) => history.viewed);
-      const artists = await User.find({ posts: { $in: historyArray } });
-      const artistsPostArray = _.flatten(artists.map((artist) => artist.posts));
       const posts = await Post.find({
-        _id: { $in: artistsPostArray, $nin: historyArray },
-      }).sort({ date: -1 });
-      const data = relayPaginate(posts, args.after, args.limit);
+        author: parent.id,
+        ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+      })
+        .sort({
+          date: -1,
+          _id: -1,
+        })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: posts,
+        cursorIdentifier: "date",
+        limit: args.limit,
+      });
       return data;
     },
     async commissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
         accepted: true,
-      }).sort({ dateIssued: -1 });
-      const data = relayPaginate(commissions, args.after, args.limit);
+        ...(args.after && {
+          dateIssued: { $lt: Decursorify(args.after) },
+        }),
+      })
+        .sort({ dateIssued: -1, _id: -1 })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: commissions,
+        limit: args.limit,
+        cursorIdentifier: "dateIssued",
+      });
       return data;
     },
     async pendingCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
         accepted: false,
-      }).sort({ dateIssued: -1 });
-      const data = relayPaginate(commissions, args.after, args.limit);
+        ...(args.after && {
+          dateIssued: { $lt: Decursorify(args.after) },
+        }),
+      })
+        .sort({ dateIssued: -1, _id: -1 })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: commissions,
+        limit: args.limit,
+        cursorIdentifier: "dateIssued",
+      });
       return data;
     },
     async yourCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.yourCommissions },
         finished: false,
-      }).sort({ dateIssued: -1 });
-      const data = relayPaginate(commissions, args.after, args.limit);
+        ...(args.after && {
+          dateIssued: { $lt: Decursorify(args.after) },
+        }),
+      })
+        .sort({ dateIssued: -1, _id: -1 })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: commissions,
+        limit: args.limit,
+        cursorIdentifier: "dateIssued",
+      });
       return data;
     },
     async finishedCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
         finished: true,
-      }).sort({ dateIssued: -1 });
-      const data = relayPaginate(commissions, args.after, args.limit);
+        ...(args.after && {
+          dateIssued: { $lt: Decursorify(args.after) },
+        }),
+      })
+        .sort({ dateIssued: -1, _id: -1 })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: commissions,
+        limit: args.limit,
+        cursorIdentifier: "dateIssued",
+      });
       return data;
     },
     async yourFinishedCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.yourCommissions },
         finished: true,
-      }).sort({ dateIssued: -1 });
-      const data = relayPaginate(commissions, args.after, args.limit);
+        ...(args.after && {
+          dateIssued: { $lt: Decursorify(args.after) },
+        }),
+      })
+        .sort({ dateIssued: -1, _id: -1 })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: commissions,
+        limit: args.limit,
+        cursorIdentifier: "dateIssued",
+      });
       return data;
     },
     async yourPendingCommissions(parent, args, _context, _info) {
@@ -335,21 +464,41 @@ export const resolvers = {
         _id: { $in: parent.yourCommissions },
         accepted: true,
         finished: false,
-      }).sort({ dateIssued: -1 });
-      const data = relayPaginate(commissions, args.after, args.limit);
+        ...(args.after && {
+          dateIssued: { $lt: Decursorify(args.after) },
+        }),
+      })
+        .sort({ dateIssued: -1, _id: -1 })
+        .limit(args.limit);
+      const data = relayPaginate({
+        finalArray: commissions,
+        limit: args.limit,
+        cursorIdentifier: "dateIssued",
+      });
       return data;
     },
     async notifications(parent, args, _context, _info) {
       const notifs = await Notification.find({
         _id: { $in: parent.notifications },
-      }).sort({ date: -1 });
-      const read = notifs.filter((notif) => notif.read === false);
+        ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+      })
+        .sort({ date: -1, _id: -1 })
+        .limit(args.limit);
+      const notifCount = await Notification.countDocuments({
+        _id: { $in: parent.notifications },
+      });
+      const unread = notifs.filter((notif) => notif.read === false);
       const idList = notifs.map((notif) => notif._id);
-      const data = relayPaginate(notifs, args.after, args.limit);
+      const data = relayPaginate({
+        finalArray: notifs,
+        limit: args.limit,
+        cursorIdentifier: "date",
+      });
 
       return {
         ...data,
-        totalUnreadCount: Math.abs(read.length),
+        totalCount: notifCount,
+        totalUnreadCount: Math.abs(unread.length),
         idList: idList,
       };
     },
@@ -362,7 +511,17 @@ export const resolvers = {
     },
     async cart(parent, args, _context, _info) {
       let totalCost: number = 0;
-      const data = relayPaginate(parent.cart, args.after, args.limit);
+      const afterIndex = parent.cart.findIndex(
+        (item) => item._id == Decursorify(args.after)
+      );
+      const finalCart = parent.cart
+        .sort((a, b) => a.dateAdded - b.dateAdded)
+        .slice(afterIndex > 0 ? afterIndex : 0, args.limit);
+      const data = relayPaginate({
+        finalArray: finalCart,
+        limit: args.limit,
+        cursorIdentifier: "dateAdded",
+      });
       const costs = parent.cart.map((item) => item.cost);
       const idList = parent.cart.map((item) => item._id);
       if (parent.cart.length != 0) {
@@ -384,10 +543,20 @@ export const resolvers = {
     async comments(parent, args, _context, _info) {
       const comments = await Comment.find({
         _id: { $in: parent.comments },
-      }).sort({ date: -1 });
+        ...(args.after && { date: { $lt: Decursorify(args.after) } }),
+      })
+        .sort({ date: -1, _id: -1 })
+        .limit(args.limit);
+      const commentCount = await Comment.countDocuments({
+        _id: { $in: parent.comments },
+      });
 
-      const data = relayPaginate(comments, args.after, args.limit);
-      return data;
+      const data = relayPaginate({
+        finalArray: comments,
+        cursorIdentifier: "date",
+        limit: args.limit,
+      });
+      return { ...data, totalCount: commentCount };
     },
     async date(parent, _args, _context, _info) {
       return moment(parent.date).format("l");
@@ -493,8 +662,6 @@ export const resolvers = {
           },
         }
       );
-
-      await Tag.deleteMany({ artCount: 0 });
 
       return post;
     },

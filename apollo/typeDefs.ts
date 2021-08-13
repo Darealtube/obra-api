@@ -8,10 +8,9 @@ export const typeDefs = gql`
     image: String
     createdAt: String
     updatedAt: String
-    posts(after: ID, limit: Int): PostConnection
-    likedPosts(after: ID, limit: Int): PostConnection
-    likedArtists(after: ID, limit: Int): UserConnection
-    notifications(after: ID, limit: Int): NotificationConnection
+    posts(after: String, limit: Int): PostConnection
+    likedPosts(after: String, limit: Int): PostConnection
+    notifications(after: String, limit: Int): NotificationConnection
     username: String
     age: String
     country: String
@@ -19,21 +18,20 @@ export const typeDefs = gql`
     phone: String
     newUser: Boolean
     tutorial: Boolean
-    homeRecommended(after: ID, limit: Int): PostConnection
     artLevel: String
     artKinds: [String!]
     artStyles: [String!]
     userBio: String
     backdrop: String
-    commissions(after: ID, limit: Int): CommissionConnection
-    yourCommissions(after: ID, limit: Int): CommissionConnection
-    pendingCommissions(after: ID, limit: Int): CommissionConnection
-    finishedCommissions(after: ID, limit: Int): CommissionConnection
-    yourFinishedCommissions(after: ID, limit: Int): CommissionConnection
-    yourPendingCommissions(after: ID, limit: Int): CommissionConnection
+    commissions(after: String, limit: Int): CommissionConnection
+    yourCommissions(after: String, limit: Int): CommissionConnection
+    pendingCommissions(after: String, limit: Int): CommissionConnection
+    finishedCommissions(after: String, limit: Int): CommissionConnection
+    yourFinishedCommissions(after: String, limit: Int): CommissionConnection
+    yourPendingCommissions(after: String, limit: Int): CommissionConnection
     commissionCount: Int
     admin: Boolean
-    cart(after: ID, limit: Int): CartConnection
+    cart(after: String, limit: Int): CartConnection
     commissionPoster: String
     commissionRates: [Rates]
   }
@@ -50,7 +48,7 @@ export const typeDefs = gql`
     sale: String!
     author: User
     likes: Int
-    comments(after: ID, limit: Int): CommentConnection
+    comments(after: String, limit: Int): CommentConnection
     width: Int
     height: Int
   }
@@ -114,32 +112,37 @@ export const typeDefs = gql`
   }
 
   union ReportedId = Post | User | Comment
+  union SearchResultType = TagConnection | CategoryConnection | UserConnection
 
   type Query {
-    users: [User]!
-    posts(after: ID, limit: Int): PostConnection
     userId(id: ID): User
     userName(name: String!): User
     postId(id: ID!): Post
+    recommendedPosts(id: ID!, after: String, limit: Int): PostConnection
+    trendingPosts(after: String, limit: Int): PostConnection
     commissionId(id: ID!): Commission
     commentId(id: ID!): Comment
-    recommendedPosts(id: ID!, after: ID, limit: Int): PostConnection
-    newPosts(after: ID, limit: Int): PostConnection
-    featuredPosts(after: ID, limit: Int): PostConnection
     isLikedArtist(userID: ID, artistName: String!): Boolean
     isLikedorAddedPost(postID: ID!, userID: ID): LikedorAdded
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
     galleryExists(userName: String): Boolean
-    reports(after: ID, limit: Int, type: String!): ReportConnection
+    reports(after: String, limit: Int, type: String!): ReportConnection
     isAdmin(id: ID): Boolean
     reportId(reportedId: ID!): Report
     reportCount: ReportCount
-    searchTags(tag: String): [Tag]
+    search(
+      key: String!
+      type: String!
+      after: String
+      limit: Int
+    ): SearchResultType
+    categoryPosts(category: String!, after: String, limit: Int): PostConnection
   }
 
   type Tag {
+    id: ID
     name: String
     artCount: Int
   }
@@ -282,7 +285,6 @@ export const typeDefs = gql`
   }
 
   type UserConnection {
-    totalCount: Int
     pageInfo: PageInfo
     edges: [UserEdge]
   }
@@ -294,7 +296,6 @@ export const typeDefs = gql`
   }
 
   type CommissionConnection {
-    totalCount: Int
     pageInfo: PageInfo
     edges: [CommissionEdge]
   }
@@ -308,17 +309,28 @@ export const typeDefs = gql`
   }
 
   type ReportConnection {
-    totalCount: Int
     pageInfo: PageInfo
     edges: [ReportEdge]
   }
 
   type CartConnection {
-    totalCount: Int
     pageInfo: PageInfo
     edges: [CartEdge]
     totalCost: Float
     idList: [ID]
+  }
+
+  type CategoryConnection {
+    pageInfo: PageInfo
+    edges: [CategoryEdge]
+  }
+
+  type TagConnection {
+    edges: [Tag]
+  }
+
+  type CategoryEdge {
+    node: Tag
   }
 
   type CartEdge {

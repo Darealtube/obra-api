@@ -1,5 +1,4 @@
 type RelayPaginate = {
-  totalCount: number;
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
@@ -9,38 +8,40 @@ type RelayPaginate = {
   }[];
 };
 
-const relayPaginate = (
-  finalArray: any[],
-  after: string,
-  limit: number
-): RelayPaginate => {
-  const realAfterList = finalArray.filter((item) => item._id >= after);
-  const realAfter =
-    realAfterList.length > 0
-      ? realAfterList[realAfterList.length - 1]._id.toString()
-      : null;
+type RelayPaginateProps = {
+  finalArray: any[];
+  cursorIdentifier: string;
+  limit: number;
+};
 
-  const cursor = finalArray
-    .map(function (e) {
-      return e.id;
-    })
-    .indexOf(realAfter);
+export const Cursorify = (info: any) =>
+  Buffer.from(info.toString()).toString("base64");
 
-  const final = finalArray.slice(
-    realAfter && cursor != -1 ? cursor + 1 : 0,
-    realAfter && cursor != -1 ? limit + cursor + 1 : limit
-  );
+export const Decursorify = (string: string) =>
+  Buffer.from(string, "base64").toString();
 
+/* 
+  This is the function that automatically formats the data to be relayPaginated.  
+  Here, you pass in the FINAL array in which is to be paginated, the after and the 
+  limit args passed by the query. There are also other options such as sortedByDate
+  and useCursorAlways. These two options help to decide if the function must use the
+  actual "after" argument or the nearest to "after".
+*/
+
+const relayPaginate = ({
+  finalArray,
+  cursorIdentifier,
+  limit,
+}: RelayPaginateProps): RelayPaginate => {
   return {
-    totalCount: finalArray.length,
     pageInfo: {
-      endCursor: final[final.length - 1]?.id,
-      hasNextPage:
-        final[final.length - 1]?.id == finalArray[finalArray.length - 1]?.id
-          ? false
-          : true,
+      endCursor:
+        finalArray.length > 0
+          ? Cursorify(finalArray[finalArray.length - 1][cursorIdentifier])
+          : null,
+      hasNextPage: finalArray.length < limit ? false : true,
     },
-    edges: final.map((a) => ({ node: a })),
+    edges: finalArray.map((a) => ({ node: a })),
   };
 };
 
