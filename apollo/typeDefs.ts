@@ -175,8 +175,6 @@ export const typeDefs = gql`
   }
 
   type Mutation {
-    likePost(postId: ID!, userID: ID!): Boolean!
-    unlikePost(postId: ID!, userID: ID!): Boolean!
     editPost(
       postId: ID
       title: String!
@@ -195,6 +193,8 @@ export const typeDefs = gql`
       width: Int!
       height: Int!
     ): Boolean!
+    likeUnlikePost(postId: ID!, userID: ID!, action: String!): Boolean!
+    likeUnlikeArtist(artistID: ID!, userID: ID!, action: String!): Boolean!
     deletePost(postId: ID!): Boolean!
     configUser(
       userId: ID!
@@ -230,9 +230,6 @@ export const typeDefs = gql`
     readNotif(notifArray: [ID!]): Boolean!
     createComment(postID: ID!, author: ID!, content: String!): Comment!
     deleteComment(commentID: ID!): Boolean!
-    likeArtist(artistID: ID!, userID: ID!): Boolean!
-    unlikeArtist(artistID: ID!, userID: ID!): Boolean!
-    viewPost(viewed: ID!, userId: ID!): Boolean!
     commissionArtist(
       artistName: String!
       userId: ID!

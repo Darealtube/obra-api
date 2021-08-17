@@ -3,7 +3,6 @@ import Post from "../model/Post";
 import User from "../model/User";
 import moment from "moment";
 import Comment from "../model/Comment";
-import History from "../model/History";
 import _ from "lodash";
 import relayPaginate, { Decursorify } from "../relayPaginate";
 import Commission from "../model/Commission";
@@ -573,64 +572,59 @@ export const resolvers = {
     },
   },
   Mutation: {
-    async likePost(_parent, args, _context, _info) {
-      const post = await Post.findById(args.postId).lean();
+    async likeUnlikePost(_parent, args, _context, _info) {
+      const post = await Post.exists({ _id: args.postId });
 
       if (post) {
-        await User.updateOne(
-          { _id: args.userID },
-          {
-            $addToSet: {
-              likedPosts: new ObjectId(args.postId as string) as never,
+        if (args.action == "like") {
+          await User.updateOne(
+            { _id: args.userID },
+            {
+              $addToSet: {
+                likedPosts: new ObjectId(args.postId as string) as never,
+              },
             },
-          },
-          {
-            new: true,
-            runValidators: true,
-          }
-        ).lean();
+            {
+              new: true,
+              runValidators: true,
+            }
+          ).lean();
 
-        await Post.updateOne(
-          { _id: args.postId },
-          {
-            $inc: {
-              likes: 1 as never,
+          await Post.updateOne(
+            { _id: args.postId },
+            {
+              $inc: {
+                likes: 1 as never,
+              },
             },
-          },
-          {
-            new: true,
-          }
-        ).lean();
-      }
-
-      return true;
-    },
-    async unlikePost(_parent, args, _context, _info) {
-      const post = await Post.findById(args.postId).lean();
-
-      if (post) {
-        await User.updateOne(
-          { _id: args.userID },
-          {
-            $pull: {
-              likedPosts: new ObjectId(args.postId as string),
+            {
+              new: true,
+            }
+          ).lean();
+        } else {
+          await User.updateOne(
+            { _id: args.userID },
+            {
+              $pull: {
+                likedPosts: new ObjectId(args.postId as string),
+              },
             },
-          },
-          {
-            new: true,
-          }
-        ).lean();
-        await Post.updateOne(
-          { _id: args.postId },
-          {
-            $inc: {
-              likes: -1 as never,
+            {
+              new: true,
+            }
+          ).lean();
+          await Post.updateOne(
+            { _id: args.postId },
+            {
+              $inc: {
+                likes: -1 as never,
+              },
             },
-          },
-          {
-            new: true,
-          }
-        ).lean();
+            {
+              new: true,
+            }
+          ).lean();
+        }
       }
 
       return true;
@@ -818,55 +812,32 @@ export const resolvers = {
       );
       return true;
     },
-    async likeArtist(_parent, args, _context, _info) {
-      const user = await User.findById(args.artistID).lean();
-
+    async likeUnlikeArtist(_parent, args, _context, _info) {
+      const user = await User.exists({ _id: args.artistID });
       if (user) {
-        await User.updateOne(
-          { _id: args.userID },
-          {
-            $push: {
-              likedArtists: new ObjectId(args.artistID as string) as never,
+        if (args.action == "like") {
+          await User.updateOne(
+            { _id: args.userID },
+            {
+              $push: {
+                likedArtists: new ObjectId(args.artistID as string) as never,
+              },
             },
-          },
-          {
-            new: true,
-            runValidators: true,
-          }
-        ).lean();
-      }
-
-      return true;
-    },
-    async unlikeArtist(_parent, args, _context, _info) {
-      const user = await User.findById(args.artistID).lean();
-
-      if (user) {
-        await User.updateOne(
-          { _id: args.userID },
-          { $pull: { likedArtists: new ObjectId(args.artistID as string) } },
-          {
-            new: true,
-          }
-        ).lean();
-      }
-
-      return true;
-    },
-    async viewPost(_parent, args, _context, _info) {
-      await History.findOneAndUpdate(
-        { viewed: args.viewed },
-        {
-          userId: args.userId,
-          viewed: args.viewed,
-          lastDateViewed: moment().toDate(),
-        },
-        {
-          upsert: true,
-          new: true,
-          runValidators: true,
+            {
+              new: true,
+              runValidators: true,
+            }
+          ).lean();
+        } else {
+          await User.updateOne(
+            { _id: args.userID },
+            { $pull: { likedArtists: new ObjectId(args.artistID as string) } },
+            {
+              new: true,
+            }
+          ).lean();
         }
-      );
+      }
       return true;
     },
     async commissionArtist(_parent, args, _context, _info) {
