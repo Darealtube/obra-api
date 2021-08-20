@@ -349,6 +349,12 @@ export const resolvers = {
     },
   },
   User: {
+    async artCount(parent, _args, _context, _info) {
+      const artCount = await Post.countDocuments({
+        author: parent.id,
+      });
+      return artCount;
+    },
     async likedPosts(parent, args, _context, _info) {
       const posts = await Post.find({
         _id: { $in: parent.likedPosts },

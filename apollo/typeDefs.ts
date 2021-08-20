@@ -23,6 +23,7 @@ export const typeDefs = gql`
     artStyles: [String!]
     userBio: String
     backdrop: String
+    artCount: Int
     commissions(after: String, limit: Int): CommissionConnection
     yourCommissions(after: String, limit: Int): CommissionConnection
     pendingCommissions(after: String, limit: Int): CommissionConnection
