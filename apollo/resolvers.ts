@@ -80,6 +80,10 @@ export const resolvers = {
       });
       return data;
     },
+    async popularCategories(_parent, args, _context, _info) {
+      const topCategories = await Tag.find({}).sort({ artCount: -1 }).limit(25);
+      return topCategories;
+    },
     async isLikedArtist(_parent, args, _context, _info) {
       const user = await User.findById(args.userID);
       const artist = await User.findOne({ name: args.artistName });

@@ -140,6 +140,7 @@ export const typeDefs = gql`
       limit: Int
     ): SearchResultType
     categoryPosts(category: String!, after: String, limit: Int): PostConnection
+    popularCategories: [Category]
   }
 
   type Tag {
