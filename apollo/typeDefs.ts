@@ -26,13 +26,8 @@ export const typeDefs = gql`
     artCount: Int
     commissions(after: String, limit: Int): CommissionConnection
     yourCommissions(after: String, limit: Int): CommissionConnection
-    pendingCommissions(after: String, limit: Int): CommissionConnection
-    finishedCommissions(after: String, limit: Int): CommissionConnection
-    yourFinishedCommissions(after: String, limit: Int): CommissionConnection
-    yourPendingCommissions(after: String, limit: Int): CommissionConnection
     commissionCount: Int
     admin: Boolean
-    cart(after: String, limit: Int): CartConnection
     commissionPoster: String
     commissionRates: [Rates]
   }
@@ -65,13 +60,8 @@ export const typeDefs = gql`
     height: Int!
     deadline: String
     dateIssued: String!
-    accepted: Boolean!
-    finished: Boolean!
     price: Float!
     rates: [String]!
-    finishedArt: String
-    finishedwatermarkArt: String
-    message: String
   }
 
   type Comment {
@@ -80,13 +70,6 @@ export const typeDefs = gql`
     date: String!
     author: User
     content: String!
-  }
-
-  type Cart {
-    id: ID!
-    postID: Post
-    dateAdded: String!
-    cost: Float
   }
 
   type Rates {
@@ -124,7 +107,7 @@ export const typeDefs = gql`
     commissionId(id: ID!): Commission
     commentId(id: ID!): Comment
     isLikedArtist(userID: ID, artistName: String!): Boolean
-    isLikedorAddedPost(postID: ID!, userID: ID): LikedorAdded
+    isLikedPost(postID: ID!, userID: ID): Boolean
     userExists(userName: String, userId: ID!): Boolean
     isSameUser(userId: ID!, userName: String!): Boolean
     allUsersList: [String]
@@ -152,11 +135,6 @@ export const typeDefs = gql`
     id: ID
     name: String
     artCount: Int
-  }
-
-  type LikedorAdded {
-    isLiked: Boolean
-    isAdded: Boolean
   }
 
   type ReportCount {
@@ -246,13 +224,6 @@ export const typeDefs = gql`
     ): Boolean!
     deleteNotification(notifId: ID!, userId: ID!): Boolean!
     deleteCommission(commissionId: ID!, reason: String): Boolean!
-    acceptCommission(commissionId: ID!, message: String): Commission!
-    finishCommission(
-      commissionId: ID!
-      finishedArt: String!
-      message: String!
-      finishedwatermarkArt: String!
-    ): Boolean!
     sendReport(
       senderId: ID!
       reportedId: ID
@@ -271,15 +242,6 @@ export const typeDefs = gql`
       reason: String!
     ): Boolean!
     deleteReport(reportId: ID!): Boolean!
-    addToCart(userID: ID!, postID: ID, cost: Float): Boolean!
-    unaddToCart(userID: ID!, postID: ID): Boolean!
-    removeFromCart(userID: ID!, itemID: ID): RemoveCartResult
-    removeSelectedFromCart(userID: ID!, selected: [ID]): RemoveCartResult
-  }
-
-  type RemoveCartResult {
-    idList: [ID]
-    totalCost: Float
   }
 
   type PostConnection {
@@ -317,13 +279,6 @@ export const typeDefs = gql`
     edges: [ReportEdge]
   }
 
-  type CartConnection {
-    pageInfo: PageInfo
-    edges: [CartEdge]
-    totalCost: Float
-    idList: [ID]
-  }
-
   type CategoryConnection {
     pageInfo: PageInfo
     edges: [CategoryEdge]
@@ -340,10 +295,6 @@ export const typeDefs = gql`
 
   type CategoryEdge {
     node: Category
-  }
-
-  type CartEdge {
-    node: Cart
   }
 
   type ReportEdge {

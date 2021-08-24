@@ -20,17 +20,6 @@ const CommissionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Date,
     default: now,
   },
-  finished: {
-    type: Boolean,
-    default: false,
-  },
-  accepted: {
-    type: Boolean,
-    default: false,
-  },
-  finishedArt: String,
-  finishedwatermarkArt: String,
-  message: String,
 });
 
 export default mongoose.models.Commission ||

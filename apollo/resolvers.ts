@@ -92,24 +92,13 @@ export const resolvers = {
 
       return artist && user ? user.likedArtists.includes(artist._id) : false;
     },
-    async isLikedorAddedPost(_parent, args, _context, _info) {
-      let id: string | mongoose.Types.ObjectId;
-      let id2: string | mongoose.Types.ObjectId;
-      try {
-        id = new mongoose.Types.ObjectId(args.userID);
-        id2 = new mongoose.Types.ObjectId(args.postID);
-      } catch (error) {
-        return null;
-      }
-      const user = await User.findById(args.userID);
-      if (user) {
-        const isLiked = user.likedPosts.includes(args.postID);
-        const userCart = user.cart.map((item) => item.postID);
-        const isAdded = userCart.includes(args.postID);
-        return { isLiked, isAdded };
-      } else {
-        return { isLiked: false, isAdded: false };
-      }
+    async isLikedPost(_parent, args, _context, _info) {
+      const user = await User.findOne({
+        _id: args.userID,
+        likedPosts: { $in: [new ObjectId(args.postID)] },
+      });
+
+      return user ? true : false;
     },
     async userExists(_parent, args, _context, _info) {
       const origUser = await User.findById(args.userId).lean();
@@ -346,14 +335,6 @@ export const resolvers = {
       return moment(parent.date).format("l");
     },
   },
-  Cart: {
-    async postID(parent, _args, _context, _info) {
-      return Post.findById(parent.postID);
-    },
-    async dateAdded(parent, _args, _context, _info) {
-      return moment(parent.dateAdded).format("l");
-    },
-  },
   User: {
     async artCount(parent, _args, _context, _info) {
       const artCount = await Post.countDocuments({
@@ -398,24 +379,6 @@ export const resolvers = {
     async commissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
-        accepted: true,
-        ...(args.after && {
-          dateIssued: { $lt: Decursorify(args.after) },
-        }),
-      })
-        .sort({ dateIssued: -1, _id: -1 })
-        .limit(args.limit);
-      const data = relayPaginate({
-        finalArray: commissions,
-        limit: args.limit,
-        cursorIdentifier: "dateIssued",
-      });
-      return data;
-    },
-    async pendingCommissions(parent, args, _context, _info) {
-      const commissions = await Commission.find({
-        _id: { $in: parent.commissions },
-        accepted: false,
         ...(args.after && {
           dateIssued: { $lt: Decursorify(args.after) },
         }),
@@ -432,59 +395,6 @@ export const resolvers = {
     async yourCommissions(parent, args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.yourCommissions },
-        finished: false,
-        ...(args.after && {
-          dateIssued: { $lt: Decursorify(args.after) },
-        }),
-      })
-        .sort({ dateIssued: -1, _id: -1 })
-        .limit(args.limit);
-      const data = relayPaginate({
-        finalArray: commissions,
-        limit: args.limit,
-        cursorIdentifier: "dateIssued",
-      });
-      return data;
-    },
-    async finishedCommissions(parent, args, _context, _info) {
-      const commissions = await Commission.find({
-        _id: { $in: parent.commissions },
-        finished: true,
-        ...(args.after && {
-          dateIssued: { $lt: Decursorify(args.after) },
-        }),
-      })
-        .sort({ dateIssued: -1, _id: -1 })
-        .limit(args.limit);
-      const data = relayPaginate({
-        finalArray: commissions,
-        limit: args.limit,
-        cursorIdentifier: "dateIssued",
-      });
-      return data;
-    },
-    async yourFinishedCommissions(parent, args, _context, _info) {
-      const commissions = await Commission.find({
-        _id: { $in: parent.yourCommissions },
-        finished: true,
-        ...(args.after && {
-          dateIssued: { $lt: Decursorify(args.after) },
-        }),
-      })
-        .sort({ dateIssued: -1, _id: -1 })
-        .limit(args.limit);
-      const data = relayPaginate({
-        finalArray: commissions,
-        limit: args.limit,
-        cursorIdentifier: "dateIssued",
-      });
-      return data;
-    },
-    async yourPendingCommissions(parent, args, _context, _info) {
-      const commissions = await Commission.find({
-        _id: { $in: parent.yourCommissions },
-        accepted: true,
-        finished: false,
         ...(args.after && {
           dateIssued: { $lt: Decursorify(args.after) },
         }),
@@ -526,29 +436,8 @@ export const resolvers = {
     async commissionCount(parent, _args, _context, _info) {
       const commissions = await Commission.find({
         _id: { $in: parent.commissions },
-        accepted: false,
       });
       return commissions.length;
-    },
-    async cart(parent, args, _context, _info) {
-      let totalCost: number = 0;
-      const afterIndex = parent.cart.findIndex(
-        (item) => item._id == Decursorify(args.after)
-      );
-      const finalCart = parent.cart
-        .sort((a, b) => a.dateAdded - b.dateAdded)
-        .slice(afterIndex > 0 ? afterIndex : 0, args.limit);
-      const data = relayPaginate({
-        finalArray: finalCart,
-        limit: args.limit,
-        cursorIdentifier: "dateAdded",
-      });
-      const costs = parent.cart.map((item) => item.cost);
-      const idList = parent.cart.map((item) => item._id);
-      if (parent.cart.length != 0) {
-        totalCost = costs?.reduce((a, b) => a + b);
-      }
-      return { ...data, totalCost, idList };
     },
   },
   Post: {
@@ -946,68 +835,6 @@ export const resolvers = {
       );
       return true;
     },
-    async acceptCommission(_parent, args, _context, _info) {
-      const commission = await Commission.findOneAndUpdate(
-        { _id: args.commissionId },
-        { accepted: true },
-        { new: true }
-      );
-      const user = await User.findById(commission.toArtist).lean();
-
-      const notification = await Notification.create({
-        commissioner: user._id,
-        description: `Your commission to ${
-          user.name
-        } has been accepted. Message: ${args.message ? args.message : ""}`,
-        read: false,
-      });
-
-      await User.updateOne(
-        {
-          yourCommissions: { $in: [new ObjectId(args.commissionId as string)] },
-        },
-        {
-          $push: { notifications: notification._id },
-        }
-      );
-
-      return commission;
-    },
-    async finishCommission(_parent, args, _context, _info) {
-      const commission = await Commission.findByIdAndUpdate(
-        args.commissionId,
-        {
-          finished: true,
-          finishedArt: args.finishedArt,
-          finishedwatermarkArt: args.finishedwatermarkArt,
-          message: args.message,
-        },
-        { new: true }
-      );
-
-      const user = await User.findByIdAndUpdate(commission.toArtist._id, {
-        $pull: {
-          commissions: new mongoose.Types.ObjectId(args.commissionId as string),
-        },
-      });
-
-      const notification = await Notification.create({
-        commissioner: commission.toArtist._id,
-        description: `Your commission to ${
-          user.name
-        } has been finished. Message: ${args.message ? args.message : ""}`,
-        read: false,
-      });
-
-      await User.updateOne(
-        { _id: commission.fromUser._id },
-        {
-          $push: { notifications: notification._id },
-        }
-      );
-
-      return true;
-    },
     async sendReport(_parent, args, _context, _info) {
       let reported;
       switch (args.type) {
@@ -1061,78 +888,6 @@ export const resolvers = {
       });
 
       return true;
-    },
-    async addToCart(_parent, args, _context, _info) {
-      await User.updateOne(
-        { _id: args.userID },
-        {
-          $push: {
-            cart: {
-              _id: new mongoose.Types.ObjectId(),
-              postID: args.postID,
-              dateAdded: moment().toDate(),
-              cost: args.cost,
-            },
-          },
-        }
-      );
-      return true;
-    },
-    async unaddToCart(_parent, args, _context, _info) {
-      await User.updateOne(
-        { _id: args.userID },
-        {
-          $pull: {
-            cart: {
-              postID: args.postID,
-            },
-          },
-        }
-      );
-      return true;
-    },
-    async removeFromCart(_parent, args, _context, _info) {
-      let totalCost: number = 0;
-      const user = await User.findByIdAndUpdate(
-        args.userID,
-        {
-          $pull: {
-            cart: {
-              _id: new mongoose.Types.ObjectId(args.itemID),
-            },
-          },
-        },
-        { new: true }
-      );
-      const costs = user.cart.map((item) => item.cost);
-      const idList = user.cart.map((item) => item._id);
-      if (user.cart.length != 0) {
-        totalCost = costs?.reduce((a, b) => a + b);
-      }
-
-      return { totalCost, idList };
-    },
-    async removeSelectedFromCart(_parent, args, _context, _info) {
-      let totalCost: number = 0;
-      const user = await User.findByIdAndUpdate(
-        args.userID,
-        {
-          $pull: {
-            cart: {
-              _id: { $in: args.selected },
-            },
-          },
-        },
-        { new: true }
-      );
-
-      const costs = user.cart.map((item) => item.cost);
-      const idList = user.cart.map((item) => item._id);
-      if (user.cart.length != 0) {
-        totalCost = costs?.reduce((a, b) => a + b);
-      }
-
-      return { totalCost, idList };
     },
   },
 };
