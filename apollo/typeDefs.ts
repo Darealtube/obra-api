@@ -40,8 +40,6 @@ export const typeDefs = gql`
     description: String!
     art: String!
     watermarkArt: String!
-    price: String!
-    sale: String!
     author: User
     likes: Int
     comments(after: String, limit: Int): CommentConnection
@@ -167,8 +165,6 @@ export const typeDefs = gql`
       description: String!
       art: String!
       watermarkArt: String!
-      price: String!
-      sale: String!
       author: ID!
       width: Int!
       height: Int!

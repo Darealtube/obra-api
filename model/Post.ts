@@ -11,8 +11,6 @@ const PostSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Date,
     default: now,
   },
-  sale: String,
-  price: String,
   art: String,
   watermarkArt: String,
   tags: Array,
@@ -31,8 +29,6 @@ const PostSchema = new mongoose.Schema({
     default: 0,
   },
   comments: Array,
-  forSale: Boolean,
-  forSalePrice: String,
   width: Number,
   height: Number,
 });

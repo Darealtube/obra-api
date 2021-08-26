@@ -6,7 +6,6 @@ const UserSchema = new mongoose.Schema({
   posts: Array,
   likedPosts: Array,
   likedArtists: Array,
-  balance: String,
   notifications: Array,
   tutorial: {
     type: Boolean,
