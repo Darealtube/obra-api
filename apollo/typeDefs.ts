@@ -19,8 +19,6 @@ export const typeDefs = gql`
     newUser: Boolean
     tutorial: Boolean
     artLevel: String
-    artKinds: [String!]
-    artStyles: [String!]
     userBio: String
     backdrop: String
     artCount: Int
@@ -172,26 +170,12 @@ export const typeDefs = gql`
     likeUnlikePost(postId: ID!, userID: ID!, action: String!): Boolean!
     likeUnlikeArtist(artistID: ID!, userID: ID!, action: String!): Boolean!
     deletePost(postId: ID!): Boolean!
-    configUser(
-      userId: ID!
-      name: String!
-      age: String!
-      country: String!
-      language: String!
-      birthday: String!
-      phone: String!
-      artLevel: String!
-      artStyles: [String!]
-      artKinds: [String!]
-    ): Boolean!
     editUser(
       userId: ID!
       name: String!
       country: String!
       birthday: String!
       artLevel: String!
-      artStyles: [String!]
-      artKinds: [String!]
       userBio: String
       image: String
       backdrop: String

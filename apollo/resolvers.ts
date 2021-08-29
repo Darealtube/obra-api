@@ -643,28 +643,6 @@ export const resolvers = {
 
       return true;
     },
-    async configUser(_parent, args, _context, _info) {
-      await User.findByIdAndUpdate(
-        args.userId,
-        {
-          name: args.name,
-          age: args.age,
-          country: args.country,
-          language: args.language,
-          birthday: args.birthday,
-          phone: args.phone,
-          artLevel: args.artLevel,
-          artStyles: args.artStyles,
-          artKinds: args.artKinds,
-          newUser: false,
-        },
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
-      return true;
-    },
     async editUser(_parent, args, _context, _info) {
       const data = await User.findByIdAndUpdate(
         args.userId,
@@ -674,8 +652,6 @@ export const resolvers = {
           country: args.country,
           birthday: args.birthday,
           artLevel: args.artLevel,
-          artStyles: args.artStyles,
-          artKinds: args.artKinds,
           image: args.image,
           backdrop: args.backdrop,
           phone: args.phone,
