@@ -105,9 +105,6 @@ export const typeDefs = gql`
     isLikedArtist(userID: ID, artistName: String!): Boolean
     isLikedPost(postID: ID!, userID: ID): Boolean
     userExists(userName: String, userId: ID!): Boolean
-    isSameUser(userId: ID!, userName: String!): Boolean
-    allUsersList: [String]
-    galleryExists(userName: String): Boolean
     reports(after: String, limit: Int, type: String!): ReportConnection
     isAdmin(id: ID): Boolean
     reportId(reportedId: ID!): Report
