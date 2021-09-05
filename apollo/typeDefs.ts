@@ -117,6 +117,13 @@ export const typeDefs = gql`
     ): SearchResultType
     categoryPosts(category: String!, after: String, limit: Int): PostConnection
     popularCategories: [Category]
+    drawerCounts(userId: ID!): DrawerCounts
+  }
+
+  type DrawerCounts {
+    unreadNotif: Int
+    issues: Int
+    commissions: Int
   }
 
   type Tag {

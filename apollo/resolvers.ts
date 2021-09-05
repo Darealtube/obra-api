@@ -7,6 +7,7 @@ import relayPaginate, { Decursorify } from "../relayPaginate";
 import Commission from "../model/Commission";
 import Notification from "../model/Notification";
 import Tag from "../model/Tag";
+import { queryUserResolvers } from "./QueryResolvers/qUserResolvers";
 import { queryPostResolvers } from "./QueryResolvers/qPostResolvers";
 import { queryCategoryResolvers } from "./QueryResolvers/qCategoryResolvers";
 import { queryValidateResolvers } from "./QueryResolvers/qValidateResolvers";
@@ -20,21 +21,13 @@ import { mutateCommissionResolvers } from "./MutationResolvers.ts/mCommsResolver
 
 export const resolvers = {
   Query: {
-    userId(_parent, args, _context, _info) {
-      if (!args.id) {
-        return null;
-      }
-      return User.findById(args.id);
-    },
-    userName(_parent, args, _context, _info) {
-      return User.findOne({ name: args.name });
-    },
     commissionId(_parent, args, _context, _info) {
       return Commission.findById(args.id);
     },
     commentId(_parent, args, _context, _info) {
       return Comment.findById(args.id);
     },
+    ...queryUserResolvers,
     ...queryPostResolvers,
     ...queryCategoryResolvers,
     ...queryValidateResolvers,
