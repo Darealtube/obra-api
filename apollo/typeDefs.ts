@@ -28,6 +28,7 @@ export const typeDefs = gql`
     admin: Boolean
     commissionPoster: String
     commissionRates: [Rates]
+    isLikedBy(userId: ID!): Boolean
   }
 
   type Post {
@@ -117,6 +118,13 @@ export const typeDefs = gql`
     ): SearchResultType
     categoryPosts(category: String!, after: String, limit: Int): PostConnection
     popularCategories: [Category]
+    drawerCounts(userId: ID!): DrawerCounts
+  }
+
+  type DrawerCounts {
+    unreadNotif: Int
+    issues: Int
+    commissions: Int
   }
 
   type Tag {

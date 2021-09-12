@@ -1,10 +1,11 @@
 import Report from "../../model/Report";
 import relayPaginate, { Decursorify } from "../../relayPaginate";
 import mongoose from "mongoose";
+import { ReportType } from "../../types";
 
 export const queryReportResolvers = {
   async reports(_parent, args, _context, _info) {
-    const reports = await Report.find({
+    const reports: ReportType[] = await Report.find({
       type: args.type,
       ...(args.after && { date: { $lt: Decursorify(args.after) } }),
     })

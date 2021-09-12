@@ -3,16 +3,19 @@ import { ObjectId } from "mongodb";
 import Commission from "../../model/Commission";
 import User from "../../model/User";
 import Notification from "../../model/Notification";
+import { CommissionType, NotifType, UserType } from "../../types";
 
 export const mutateCommissionResolvers = {
   async commissionArtist(_parent, args, _context, _info) {
-    const toArtist = await User.findOne({ name: args.artistName }).lean();
+    const toArtist: UserType = await User.findOne({
+      name: args.artistName,
+    }).lean();
     const deadline = args.deadline
       ? moment().add(args.deadline, "d").toDate()
       : null;
 
     if (toArtist) {
-      const commission = await Commission.create({
+      const commission: CommissionType = await Commission.create({
         fromUser: args.userId,
         toArtist: toArtist._id,
         title: args.title,
@@ -25,7 +28,7 @@ export const mutateCommissionResolvers = {
         rates: args.rates,
       });
 
-      const fromUser = await User.findByIdAndUpdate(
+      const fromUser: UserType = await User.findByIdAndUpdate(
         args.userId,
         {
           $push: {
@@ -37,7 +40,7 @@ export const mutateCommissionResolvers = {
         }
       );
 
-      const notification = await Notification.create({
+      const notification: NotifType = await Notification.create({
         commissionId: commission._id,
         commissioner: args.userId,
         description: `You have a new commission request from ${fromUser.name}`,
@@ -64,7 +67,7 @@ export const mutateCommissionResolvers = {
   async deleteCommission(_parent, args, _context, _info) {
     await Commission.deleteOne({ _id: args.commissionId });
 
-    const user = await User.findOneAndUpdate(
+    const user: UserType = await User.findOneAndUpdate(
       { commissions: { $in: [new ObjectId(args.commissionId as string)] } },
       { $pull: { commissions: new ObjectId(args.commissionId as string) } }
     );
@@ -74,7 +77,7 @@ export const mutateCommissionResolvers = {
       commissionId: args.commissionId,
     });
 
-    const notification = await Notification.create({
+    const notification: NotifType = await Notification.create({
       commissioner: user._id,
       description: `Your commission to ${
         user.name

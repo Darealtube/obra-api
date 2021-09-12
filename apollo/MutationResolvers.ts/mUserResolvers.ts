@@ -1,9 +1,10 @@
 import { ObjectId } from "mongodb";
 import User from "../../model/User";
+import { UserType } from "../../types";
 
 export const mutateUserResolvers = {
   async editUser(_parent, args, _context, _info) {
-    const data = await User.findByIdAndUpdate(
+    const data: UserType = await User.findByIdAndUpdate(
       args.userId,
       {
         name: args.name,
@@ -26,7 +27,7 @@ export const mutateUserResolvers = {
     return data;
   },
   async editUserComm(_parent, args, _context, _info) {
-    const data = await User.findByIdAndUpdate(
+    const data: UserType = await User.findByIdAndUpdate(
       args.userId,
       {
         commissionPoster: args.commissionPoster,
@@ -40,7 +41,7 @@ export const mutateUserResolvers = {
     return data;
   },
   async likeUnlikeArtist(_parent, args, _context, _info) {
-    const user = await User.exists({ _id: args.artistID });
+    const user: boolean = await User.exists({ _id: args.artistID });
     if (user) {
       if (args.action == "like") {
         await User.updateOne(

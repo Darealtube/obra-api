@@ -7,6 +7,7 @@ import relayPaginate, { Decursorify } from "../relayPaginate";
 import Commission from "../model/Commission";
 import Notification from "../model/Notification";
 import Tag from "../model/Tag";
+import { queryUserResolvers } from "./QueryResolvers/qUserResolvers";
 import { queryPostResolvers } from "./QueryResolvers/qPostResolvers";
 import { queryCategoryResolvers } from "./QueryResolvers/qCategoryResolvers";
 import { queryValidateResolvers } from "./QueryResolvers/qValidateResolvers";
@@ -17,24 +18,24 @@ import { mutateUserResolvers } from "./MutationResolvers.ts/mUserResolvers";
 import { mutateNotifResolvers } from "./MutationResolvers.ts/mNotifResolvers";
 import { mutateReportResolvers } from "./MutationResolvers.ts/mReportResolvers";
 import { mutateCommissionResolvers } from "./MutationResolvers.ts/mCommsResolvers";
+import {
+  CommentType,
+  CommissionType,
+  NotifType,
+  PostType,
+  TagType,
+  UserType,
+} from "../types";
 
 export const resolvers = {
   Query: {
-    userId(_parent, args, _context, _info) {
-      if (!args.id) {
-        return null;
-      }
-      return User.findById(args.id);
-    },
-    userName(_parent, args, _context, _info) {
-      return User.findOne({ name: args.name });
-    },
     commissionId(_parent, args, _context, _info) {
       return Commission.findById(args.id);
     },
     commentId(_parent, args, _context, _info) {
       return Comment.findById(args.id);
     },
+    ...queryUserResolvers,
     ...queryPostResolvers,
     ...queryCategoryResolvers,
     ...queryValidateResolvers,
@@ -42,9 +43,9 @@ export const resolvers = {
   },
   ReportedId: {
     async __resolveType(obj) {
-      const user = await User.findById(obj);
-      const post = await Post.findById(obj);
-      const comment = await Comment.findById(obj);
+      const user: UserType = await User.findById(obj);
+      const post: PostType = await Post.findById(obj);
+      const comment: CommentType = await Comment.findById(obj);
 
       if (comment) {
         return "Comment";
@@ -129,7 +130,7 @@ export const resolvers = {
       return artCount;
     },
     async likedPosts(parent, args, _context, _info) {
-      const posts = await Post.find({
+      const posts: PostType[] = await Post.find({
         _id: { $in: parent.likedPosts },
         ...(args.after && { date: { $lt: Decursorify(args.after) } }),
       })
@@ -146,7 +147,7 @@ export const resolvers = {
       return data;
     },
     async posts(parent, args, _context, _info) {
-      const posts = await Post.find({
+      const posts: PostType[] = await Post.find({
         author: parent.id,
         ...(args.after && { date: { $lt: Decursorify(args.after) } }),
       })
@@ -163,7 +164,7 @@ export const resolvers = {
       return data;
     },
     async commissions(parent, args, _context, _info) {
-      const commissions = await Commission.find({
+      const commissions: CommissionType[] = await Commission.find({
         _id: { $in: parent.commissions },
         ...(args.after && {
           dateIssued: { $lt: Decursorify(args.after) },
@@ -179,7 +180,7 @@ export const resolvers = {
       return data;
     },
     async yourCommissions(parent, args, _context, _info) {
-      const commissions = await Commission.find({
+      const commissions: CommissionType[] = await Commission.find({
         _id: { $in: parent.yourCommissions },
         ...(args.after && {
           dateIssued: { $lt: Decursorify(args.after) },
@@ -195,7 +196,7 @@ export const resolvers = {
       return data;
     },
     async notifications(parent, args, _context, _info) {
-      const notifs = await Notification.find({
+      const notifs: NotifType[] = await Notification.find({
         _id: { $in: parent.notifications },
         ...(args.after && { date: { $lt: Decursorify(args.after) } }),
       })
@@ -220,10 +221,17 @@ export const resolvers = {
       };
     },
     async commissionCount(parent, _args, _context, _info) {
-      const commissions = await Commission.find({
+      const commissions: CommissionType[] = await Commission.find({
         _id: { $in: parent.commissions },
       });
       return commissions.length;
+    },
+    async isLikedBy(parent, args, _context, _info) {
+      const liked: UserType = await User.findOne({
+        _id: args.userId,
+        likedArtists: { $in: [parent._id] },
+      }).lean();
+      return liked ? true : false;
     },
   },
   Post: {
@@ -231,13 +239,17 @@ export const resolvers = {
       return User.findById(parent.author);
     },
     async tags(parent, _args, _context, _info) {
-      const modTag = parent.tags.map((tag: string) => tag.toUpperCase());
-      const tagList = await Tag.find({ name: { $in: modTag } }).lean();
+      const modTag: TagType[] = parent.tags.map((tag: string) =>
+        tag.toUpperCase()
+      );
+      const tagList: TagType[] = await Tag.find({
+        name: { $in: modTag },
+      }).lean();
 
       return tagList;
     },
     async comments(parent, args, _context, _info) {
-      const comments = await Comment.find({
+      const comments: CommentType[] = await Comment.find({
         _id: { $in: parent.comments },
         ...(args.after && { date: { $lt: Decursorify(args.after) } }),
       })

@@ -3,10 +3,11 @@ import Report from "../../model/Report";
 import User from "../../model/User";
 import Comment from "../../model/Comment";
 import nodemailer from "nodemailer";
+import { CommentType, PostType, UserType } from "../../types";
 
 export const mutateReportResolvers = {
   async sendReport(_parent, args, _context, _info) {
-    let reported;
+    let reported: PostType | CommentType | UserType;
     switch (args.type) {
       case "Post":
         reported = await Post.findById(args.reportedId).lean();
