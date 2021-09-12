@@ -28,6 +28,7 @@ export const typeDefs = gql`
     admin: Boolean
     commissionPoster: String
     commissionRates: [Rates]
+    isLikedBy(userId: ID!): Boolean
   }
 
   type Post {

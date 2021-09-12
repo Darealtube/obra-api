@@ -1,26 +1,26 @@
 export type TagType = {
-  id: string;
+  _id: string;
   name: string;
   artCount: number;
 };
 
 export type PostType = {
-  id: string;
+  _id: string;
   date: string;
-  tags: TagType[];
+  tags: string[];
   title: string;
   description: string;
   art: string;
   watermarkArt: string;
   author: string;
   likes: number;
-  comments: CommentType[];
+  comments: string[];
   width: number;
   height: number;
 };
 
 export type CommentType = {
-  id: string;
+  _id: string;
   postID: string;
   date: string;
   author: string;
@@ -28,15 +28,15 @@ export type CommentType = {
 };
 
 export type UserType = {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   image: string;
   createdAt: string;
   updatedAt: string;
-  posts: PostType[];
-  likedPosts: PostType[];
-  notifications: NotifType[];
+  posts: string[];
+  likedPosts: string[];
+  notifications: string[];
   age: string;
   country: string;
   birthday: string;
@@ -46,15 +46,16 @@ export type UserType = {
   artLevel: string;
   userBio: string;
   backdrop: string;
-  commissions: CommissionType[];
-  yourCommissions: CommissionType[];
+  commissions: string[];
+  yourCommissions: string[];
   admin: boolean;
   commissionPoster: string;
   commissionRates: RatesType[];
+  likedArtists: string[];
 };
 
 export type CommissionType = {
-  id: string;
+  _id: string;
   fromUser: string;
   toArtist: string;
   title: string;
@@ -69,7 +70,7 @@ export type CommissionType = {
 };
 
 export type NotifType = {
-  id: string;
+  _id: string;
   commissionId: string;
   commissioner: string;
   date: string;
@@ -80,4 +81,17 @@ export type NotifType = {
 export type RatesType = {
   type: string;
   price: number;
+};
+
+export type ReportType = {
+  _id: string;
+  senderId: string;
+  reportedId: string;
+  type: string;
+  date: string;
+  title: string;
+  description: string;
+  reason: string;
+  bugVid: string;
+  vidFormat: string;
 };

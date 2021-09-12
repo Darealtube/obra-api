@@ -1,10 +1,11 @@
 import { ObjectId } from "mongodb";
 import Post from "../../model/Post";
 import Comment from "../../model/Comment";
+import { CommentType } from "../../types";
 
 export const mutateCommentResolvers = {
   async createComment(_parent, args, _context, _info) {
-    const comment = await Comment.create(args);
+    const comment: CommentType = await Comment.create(args);
     await Post.findByIdAndUpdate(args.postID, {
       $push: { comments: comment._id as never },
     });

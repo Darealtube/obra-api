@@ -43,7 +43,10 @@ const handler = apolloServer.createHandler({ path: "/api/graphql" });
 // on development mode, never forget.
 const allowCors = (fn) => async (req, res) => {
   res.setHeader("Access-Control-Allow-Credentials", true);
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://obra-website.vercel.app"
+  );
   // another common pattern
   // res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
   res.setHeader(

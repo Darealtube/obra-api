@@ -4,6 +4,7 @@ import Report from "../../model/Report";
 import Tag from "../../model/Tag";
 import User from "../../model/User";
 import Comment from "../../model/Comment";
+import { PostType, TagType } from "../../types";
 
 export const mutatePostResolvers = {
   async likeUnlikePost(_parent, args, _context, _info) {
@@ -64,9 +65,11 @@ export const mutatePostResolvers = {
     return true;
   },
   async editPost(_parent, args, _context, _info) {
-    const origPost = await Post.findById(args.postId);
-    const newTags = args.tags.filter((tag) => !origPost.tags.includes(tag));
-    const post = await Post.findByIdAndUpdate(
+    const origPost: PostType = await Post.findById(args.postId);
+    const newTags: string[] = args.tags.filter(
+      (tag: string) => !origPost.tags.includes(tag)
+    );
+    const post: PostType = await Post.findByIdAndUpdate(
       args.postId,
       {
         title: args.title,
@@ -104,7 +107,7 @@ export const mutatePostResolvers = {
     return post;
   },
   async deletePost(_parent, args, _context, _info) {
-    const post = await Post.findById(args.postId);
+    const post: PostType = await Post.findById(args.postId);
     await Post.deleteOne({ _id: args.postId });
     await Comment.deleteMany({ postID: args.postId });
     await Report.deleteMany({ reportedId: args.postId });
@@ -135,7 +138,7 @@ export const mutatePostResolvers = {
     return true;
   },
   async createPost(_parent, args, _context, _info) {
-    const post = await Post.create(args); // from body (for now)
+    const post: PostType = await Post.create(args); // from body (for now)
     await User.findOneAndUpdate(
       { _id: post.author },
       // @ts-ignore

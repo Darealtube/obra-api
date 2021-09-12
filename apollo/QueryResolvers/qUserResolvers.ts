@@ -2,6 +2,7 @@ import Commission from "../../model/Commission";
 import Notification from "../../model/Notification";
 import Report from "../../model/Report";
 import User from "../../model/User";
+import { UserType } from "../../types";
 
 export const queryUserResolvers = {
   async userId(_parent, args, _context, _info) {
@@ -15,7 +16,7 @@ export const queryUserResolvers = {
   },
   async drawerCounts(_parent, args, _context, _info) {
     let issues: number;
-    const user = await User.findById(args.userId);
+    const user: UserType = await User.findById(args.userId);
     const commissions = Commission.countDocuments({
       toArtist: args.userId,
     });
@@ -24,7 +25,7 @@ export const queryUserResolvers = {
     });
 
     if (user.admin) {
-      issues = await Report.countDocuments({ _id: "a" });
+      issues = await Report.countDocuments({});
     }
 
     return {
